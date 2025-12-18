@@ -63,9 +63,9 @@ export function Hero({ heroImage }: HeroProps) {
         {/* Light side (left) */}
         <div className="absolute inset-0 bg-[#D7D7D7]" />
         
-        {/* Black side with diagonal cut (right) */}
+        {/* Black side with diagonal cut (right) - Hidden on mobile */}
         <div 
-          className="absolute top-0 right-0 h-full bg-black"
+          className="hidden md:block absolute top-0 right-0 h-full bg-black"
           style={{
             width: '55%',
             clipPath: 'polygon(15% 0, 100% 0, 100% 100%, 0% 100%)'
@@ -73,8 +73,8 @@ export function Hero({ heroImage }: HeroProps) {
         />
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 relative z-10 w-full">
-        <div className="grid md:grid-cols-2 gap-12 items-center">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20 relative z-10 w-full">
+        <div className="grid md:grid-cols-2 gap-8 md:gap-12 items-center">
           {/* Text Content - Left Side (Light background) */}
           <motion.div
             initial={{ opacity: 0, x: -50 }}
@@ -94,7 +94,7 @@ export function Hero({ heroImage }: HeroProps) {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
-              className="mb-4 text-black text-6xl md:text-7xl"
+              className="mb-4 text-black text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold"
             >
               Nitesh Joshi
             </motion.h1>
@@ -102,7 +102,7 @@ export function Hero({ heroImage }: HeroProps) {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5 }}
-              className="mb-8 text-xl h-8 flex items-center"
+              className="mb-6 md:mb-8 text-base sm:text-lg md:text-xl h-7 md:h-8 flex items-center"
             >
               <h3 className="text-black/60">
                 {displayedText}
@@ -115,7 +115,7 @@ export function Hero({ heroImage }: HeroProps) {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6 }}
-              className="flex gap-4 mb-8"
+              className="flex gap-3 md:gap-4 mb-6 md:mb-8"
             >
               <a href="mailto:niteshjoshi010@icloud.com">
                 <motion.button
@@ -152,13 +152,13 @@ export function Hero({ heroImage }: HeroProps) {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.8, delay: 0.2 }}
-            className="relative z-20 flex justify-center md:justify-end"
+            className="relative z-20 flex justify-center md:justify-end order-first md:order-last"
           >
-            <div className="relative">
+            <div className="relative w-full max-w-xs sm:max-w-sm md:max-w-lg lg:max-w-xl">
               <img
                 src={heroImage}
                 alt="Profile"
-                className="w-full h-auto object-cover max-w-lg md:max-w-xl rounded-lg"
+                className="w-full h-auto object-cover rounded-lg shadow-lg"
               />
             </div>
           </motion.div>
@@ -174,9 +174,9 @@ export function Hero({ heroImage }: HeroProps) {
           y: { duration: 2, repeat: Infinity }
         }}
         onClick={scrollToAbout}
-        className="absolute bottom-8 left-1/2 transform -translate-x-1/2 bg-black/10 p-3 rounded-full hover:bg-black/20 transition-colors"
+        className="absolute bottom-4 md:bottom-8 left-1/2 transform -translate-x-1/2 bg-black/10 p-2 md:p-3 rounded-full hover:bg-black/20 transition-colors"
       >
-        <ChevronDown size={32} className="text-black" />
+        <ChevronDown size={24} className="text-black md:w-8 md:h-8" />
       </motion.button>
     </section>
   );
