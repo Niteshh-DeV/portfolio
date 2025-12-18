@@ -58,7 +58,7 @@ export function Navbar({ darkMode, toggleDarkMode, openPoetry }: NavbarProps) {
                 alt="Nitesh logo"
                 className="w-8 h-8 rounded-full object-cover border border-[rgb(var(--foreground))]/20"
               />
-              <span className="font-bold text-xl uppercase tracking-widest">Nitesh.Dev</span>
+              <span className="text-5.5xl font-normal" style={{ fontFamily: '"Tapestry", cursive' }}>Nitesh.Dev</span>
             </div>
           </motion.div>
 
