@@ -175,7 +175,7 @@ export function Poetry({ onClose }: PoetryProps) {
           'To get her attention and her devotion',
           '🌙'
         ],
-        date: '24 Aug 2025 (11:26 PM)',
+        date: '24 Aug 2025',
         pattern: 'radial-gradient(circle at 35% 50%, rgba(139, 92, 246, 0.1) 0%, transparent 50%), radial-gradient(circle at 65% 40%, rgba(59, 130, 246, 0.08) 0%, transparent 50%)'
       },
       {
@@ -540,6 +540,50 @@ export function Poetry({ onClose }: PoetryProps) {
         date: 'Somewhere in 2024',
         pattern:
           'radial-gradient(circle at 40% 45%, rgba(255, 255, 255, 0.09) 0%, transparent 45%), radial-gradient(circle at 70% 70%, rgba(59, 130, 246, 0.08) 0%, transparent 45%)'
+      },
+      {
+        title: 'Stillness',
+        lines: [
+          'Idk why I am afraid',
+          '',
+          'She is there',
+          'Still in those Voids in me',
+          'And they are',
+          'Filled with glimpse of her',
+          '',
+          'She is there',
+          'Still in the secrets',
+          'And',
+          'In Those secrets',
+          'You\'ll only find her',
+          '',
+          'Yes',
+          'She is there',
+          'Still In the Remembrance',
+          'That I Retain',
+          'With teary eyes and hope',
+          '',
+          'She is there',
+          'Still In the locked notes',
+          'And hidden dates',
+          'That I am never Stop inscribing',
+          '',
+          'She is there',
+          'Still in the quite whispers and secret prayers',
+          'I wished in the stillness of her tread',
+          '',
+          'And she is here',
+          'Living within me',
+          'Sparkling, Spilling, Stitching lies and Sighing,',
+          'In the Softness of Sunset',
+          'And Solace of Sorrow',
+          'Yess',
+          'She is Here and she is there',
+          '',
+          'Waves of stillness❤️✨'
+        ],
+        date: '11 Aug 2024 (11:11 PM)',
+        pattern: 'radial-gradient(circle at 25% 40%, rgba(236, 72, 153, 0.1) 0%, transparent 50%), radial-gradient(circle at 75% 60%, rgba(59, 130, 246, 0.08) 0%, transparent 50%)'
       }
     ];
 
