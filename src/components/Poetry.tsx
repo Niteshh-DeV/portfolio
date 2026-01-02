@@ -27,6 +27,47 @@ export function Poetry({ onClose }: PoetryProps) {
 
   const poems: Poem[] = [
       {
+        title: 'January',
+        lines: [
+          'Be my January,',
+          'Be my first,',
+          'First that I think of',
+          'While opening eyes',
+          'Be my first,',
+          'With the Intention of',
+          'Keeping our skies,',
+          'Breathing our sighs,',
+          'Whispering those cries',
+          '',
+          'Be my January',
+          'Be',
+          'These cold messy days',
+          'With the mists, they stays',
+          'Draped afar in dense haze',
+          'Eyes met—what a quite praise',
+          'A dremscape brings magical gaze',
+          '',
+          'And',
+          'Be my December,',
+          'To keep the lament chime',
+          'To Hold, like a cascading wane',
+          'Not to lose, not to hide',
+          'Ashen days, a blurry sight',
+          '',
+          'Be my December',
+          'Be My last,',
+          'A luminous Light being wise',
+          'Frostine meet and time flies',
+          'Be my last,',
+          'Last that I think of',
+          'While probably closing',
+          'Eyes',
+          '🤍'
+        ],
+        date: '1st Jan 2026',
+        pattern: 'repeating-linear-gradient(45deg, transparent, transparent 35px, rgba(59, 130, 246, 0.05) 35px, rgba(59, 130, 246, 0.05) 70px)'
+      },
+      {
         title: 'The last breath',
         lines: [
           'The last breath that I will take',
