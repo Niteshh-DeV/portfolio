@@ -32,8 +32,21 @@ export function Navbar({ darkMode, toggleDarkMode, openPoetry }: NavbarProps) {
     
     const element = document.getElementById(section.toLowerCase());
     if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
+      // Close mobile menu first
       setIsMobileMenuOpen(false);
+      
+      // Add a small delay to let the menu close, then scroll
+      setTimeout(() => {
+        // Calculate offset to account for fixed navbar (64px = h-16)
+        const navbarHeight = 64;
+        const elementPosition = element.getBoundingClientRect().top + window.pageYOffset;
+        const offsetPosition = elementPosition - navbarHeight;
+
+        window.scrollTo({
+          top: offsetPosition,
+          behavior: 'smooth'
+        });
+      }, 300); // 300ms matches the menu animation duration
     }
   };
 
