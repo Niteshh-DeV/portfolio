@@ -580,7 +580,7 @@ export function Poetry({ onClose }: PoetryProps) {
           'Yess',
           'She is Here and she is there',
           '',
-          'Waves of stillness❤️✨'
+          'Waves of stillness ❤️✨'
         ],
         date: '11 Aug 2024 (11:11 PM)',
         pattern: 'radial-gradient(circle at 25% 40%, rgba(236, 72, 153, 0.1) 0%, transparent 50%), radial-gradient(circle at 75% 60%, rgba(59, 130, 246, 0.08) 0%, transparent 50%)'
