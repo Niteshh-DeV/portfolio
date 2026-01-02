@@ -6,12 +6,14 @@ import { Skills } from './components/Skills';
 import { Projects } from './components/Projects';
 import { Poetry } from './components/Poetry';
 import { Contact } from './components/Contact';
+import { SEO } from './components/SEO';
 import { motion } from 'motion/react';
 import heroImg from '@/assets/hero.jpeg';
 
 export default function App() {
   const [darkMode, setDarkMode] = useState(true);
   const [isPoetryOpen, setIsPoetryOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState('home');
 
   useEffect(() => {
     // Check for saved theme preference or default to dark mode
@@ -29,6 +31,65 @@ export default function App() {
     }
   }, []);
 
+  // Track active section for dynamic SEO
+  useEffect(() => {
+    const handleScroll = () => {
+      const sections = ['about', 'skills', 'projects', 'contact'];
+      const scrollPosition = window.scrollY + window.innerHeight / 3;
+
+      // Check if at the top (Hero section)
+      if (window.scrollY < 100) {
+        setActiveSection('home');
+        return;
+      }
+
+      // Check which section is in view
+      for (const sectionId of sections) {
+        const element = document.getElementById(sectionId);
+        if (element) {
+          const { offsetTop, offsetHeight } = element;
+          if (scrollPosition >= offsetTop && scrollPosition < offsetTop + offsetHeight) {
+            setActiveSection(sectionId);
+            return;
+          }
+        }
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    handleScroll(); // Initial check
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // SEO metadata based on active section
+  const seoData = {
+    home: {
+      title: 'Nitesh Joshi | Computer Engineering Student & Developer',
+      description: 'Computer Engineering student from Nepal passionate about AI/ML, open source, and building meaningful digital experiences.',
+      url: 'https://niteshjoshi.me'
+    },
+    about: {
+      title: 'About Me',
+      description: 'Learn more about Nitesh Joshi - Computer Engineering student, poet, and passionate creator combining technical expertise with artistic expression.',
+      url: 'https://niteshjoshi.me#about'
+    },
+    skills: {
+      title: 'Skills & Technologies',
+      description: 'Explore my technical skills including AI/ML, web development, programming languages, and modern development tools.',
+      url: 'https://niteshjoshi.me#skills'
+    },
+    projects: {
+      title: 'Projects & Portfolio',
+      description: 'Explore my development projects including web applications, AI/ML experiments, C++ and Python projects, and open source contributions.',
+      url: 'https://niteshjoshi.me#projects'
+    },
+    contact: {
+      title: 'Contact Me',
+      description: 'Get in touch with Nitesh Joshi. Connect via email, GitHub, LinkedIn, or social media. Let\'s collaborate on exciting projects!',
+      url: 'https://niteshjoshi.me#contact'
+    }
+  };
+
   const toggleDarkMode = () => {
     setDarkMode(!darkMode);
     if (!darkMode) {
@@ -44,6 +105,12 @@ export default function App() {
 
   return (
     <div className="min-h-screen transition-colors duration-300">
+      <SEO 
+        title={seoData[activeSection as keyof typeof seoData].title}
+        description={seoData[activeSection as keyof typeof seoData].description}
+        url={seoData[activeSection as keyof typeof seoData].url}
+      />
+      
       <Navbar darkMode={darkMode} toggleDarkMode={toggleDarkMode} openPoetry={() => setIsPoetryOpen(true)} />
       
       <main>
