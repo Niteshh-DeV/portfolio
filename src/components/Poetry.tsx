@@ -1,9 +1,11 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { useState, useEffect } from 'react';
 import { Quote, Heart, X, ChevronDown } from 'lucide-react';
+import { Navbar } from './Navbar';
+import heroLogo from '@/assets/Krishna.jpeg';
 
 interface PoetryProps {
-  onClose: () => void;
+  onClose?: () => void;
 }
 
 type Poem = {
@@ -14,16 +16,36 @@ type Poem = {
 };
 
 export function Poetry({ onClose }: PoetryProps) {
+  const [darkMode, setDarkMode] = useState(true);
   const [liked, setLiked] = useState<number[]>([]);
+  const [likeCounts, setLikeCounts] = useState<number[]>([]);
   const [showAll, setShowAll] = useState(false);
   const [selectedPoem, setSelectedPoem] = useState<number | null>(null);
 
   useEffect(() => {
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'light') {
+      setDarkMode(false);
+      document.documentElement.classList.remove('dark');
+    } else {
+      setDarkMode(true);
+      document.documentElement.classList.add('dark');
+      if (!savedTheme) {
+        localStorage.setItem('theme', 'dark');
+      }
+    }
   }, []);
+
+  const toggleDarkMode = () => {
+    setDarkMode(!darkMode);
+    if (!darkMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  };
 
   const poems: Poem[] = [
       {
@@ -616,7 +638,7 @@ export function Poetry({ onClose }: PoetryProps) {
           'How can I pretend not to fall?',
           'Cause I am already attached to you.',
           '',
-          'Put It In last Cause its My First Poem '
+        
         ],
         date: 'Somewhere in 2024',
         pattern:
@@ -624,16 +646,49 @@ export function Poetry({ onClose }: PoetryProps) {
       }
     ];
 
-  const highlightedPoems = poems.slice(0, 3);
-  const morePoems = poems.slice(3);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const storedLiked = localStorage.getItem('poetry-liked');
+    const storedCounts = localStorage.getItem('poetry-like-counts');
+
+    setLiked(storedLiked ? JSON.parse(storedLiked) : []);
+
+    const parsedCounts: number[] = storedCounts ? JSON.parse(storedCounts) : poems.map(() => 0);
+    const normalizedCounts = poems.map((_, idx) => parsedCounts[idx] ?? 0);
+    setLikeCounts(normalizedCounts);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem('poetry-liked', JSON.stringify(liked));
+  }, [liked]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!likeCounts.length) return;
+    localStorage.setItem('poetry-like-counts', JSON.stringify(likeCounts));
+  }, [likeCounts]);
+
+  const highlightedPoems = poems.slice(0, 6);
+  const morePoems = poems.slice(6);
   const displayedPoems = showAll ? poems : highlightedPoems;
+  const totalLikes = likeCounts.reduce((sum, count) => sum + (Number.isFinite(count) ? count : 0), 0);
 
   const toggleLike = (index: number) => {
-    setLiked(prev => 
-      prev.includes(index) 
-        ? prev.filter(i => i !== index)
-        : [...prev, index]
-    );
+    setLiked(prev => {
+      const alreadyLiked = prev.includes(index);
+      const updatedLiked = alreadyLiked ? prev.filter(i => i !== index) : [...prev, index];
+
+      setLikeCounts(prevCounts => {
+        const nextCounts = prevCounts.length ? [...prevCounts] : poems.map(() => 0);
+        const nextValue = (nextCounts[index] ?? 0) + (alreadyLiked ? -1 : 1);
+        nextCounts[index] = Math.max(0, nextValue);
+        return nextCounts;
+      });
+
+      return updatedLiked;
+    });
   };
 
   const getSnippet = (lines: string[]) => {
@@ -641,68 +696,98 @@ export function Poetry({ onClose }: PoetryProps) {
   };
 
   return (
-    <AnimatePresence>
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-        onClick={onClose}
-      >
-        <motion.div
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0.9, opacity: 0 }}
-          transition={{ type: 'spring', damping: 25 }}
-          className="bg-[rgb(var(--background))] w-full max-w-6xl max-h-[90vh] overflow-y-auto rounded-lg shadow-2xl border-2 border-[rgb(var(--border))] relative"
-          onClick={(e) => e.stopPropagation()}
-        >
-          {/* Close Button */}
-          <motion.button
-            whileHover={{ scale: 1.1, rotate: 90 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={onClose}
-            className="sticky top-4 right-4 float-right z-10 p-3 bg-[rgb(var(--foreground))] text-[rgb(var(--background))] rounded-full hover:bg-[rgb(var(--secondary))] transition-colors m-4"
+    <div className="relative min-h-screen bg-[rgb(var(--background))] overflow-hidden">
+      <Navbar darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
+
+      {/* Spacer to clear the fixed navbar */}
+      <div className="h-20 md:h-24" />
+
+      <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-0 pb-28 md:pb-36">
+        <div className="flex flex-col items-center text-center gap-4 mb-16">
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.05 }}
+            className="flex items-center gap-2 cursor-pointer select-none"
+            onClick={() => (window.location.href = '/')}
           >
-            <X size={24} />
-          </motion.button>
+            <img
+              src={heroLogo}
+              alt="Nitesh logo"
+              className="w-auto h-12 rounded-md object-cover"
+            />
+            <span className="text-5.5xl font-bold" style={{ fontFamily: '"Orbitron", sans-serif' }}>
+              Nitesh<span style={{ color: '#ff6b35' }}>.Dev</span>
+            </span>
+          </motion.div>
 
-          <div className="p-8 md:p-12">
-            {/* Header */}
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="text-center mb-12"
-            >
-              <h2 className="mb-4 uppercase tracking-wider">Poetry</h2>
-              <p className="text-[rgb(var(--muted-foreground))] max-w-2xl mx-auto">
-                Where engineering meets expression, where code becomes poetry, and logic dances with emotion.
-              </p>
-            </motion.div>
+          <motion.h1
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="text-3xl md:text-4xl font-semibold tracking-tight"
+          >
+            Poems
+          </motion.h1>
+          <motion.h2
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+            className="text-lg md:text-xl text-[rgb(var(--muted-foreground))]"
+          >
+            Where code meets feelings.
+          </motion.h2>
+          <motion.p
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="text-sm md:text-base text-[rgb(var(--muted-foreground))] max-w-xl text-center leading-relaxed"
+          >
+            A dedicated space for the verses, memories, and quiet thoughts. Lean back, scroll slow, and tap to read in full.
+          </motion.p>
+        </div>
 
-            {/* Poems Grid */}
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {displayedPoems.map((poem, index) => {
+          {/* Poems Grid */}
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 auto-rows-fr">
+            {displayedPoems.map((poem, index) => {
                 const poemIndex = poems.indexOf(poem);
+                const likeCount = likeCounts[poemIndex] ?? 0;
 
                 return (
                   <motion.div
                     key={`${poem.title}-${poem.date}-${poemIndex}`}
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.4, delay: index * 0.1 }}
-                    whileHover={{ y: -5 }}
+                    transition={{ duration: 0.35, ease: [0.43, 0.13, 0.23, 0.96] }}
+                    whileHover={{ scale: 1.15, zIndex: 10 }}
                     onClick={() => setSelectedPoem(poemIndex)}
-                    className="glass-effect p-6 rounded-lg relative group border-2 border-[rgb(var(--border))] hover:border-[rgb(var(--foreground))] transition-all cursor-pointer"
+                    className="relative group cursor-pointer z-0 hover:z-10 h-full"
                   >
+                  <motion.div 
+                    className="glass-effect p-6 rounded-lg border-2 border-[rgb(var(--border))] group-hover:border-[rgb(var(--foreground))] transition-all shadow-lg shadow-[rgba(0,0,0,0.06)] h-full flex flex-col"
+                    whileHover={{
+                      boxShadow: '0 25px 50px -12px rgba(255, 255, 255, 0.25)'
+                    }}
+                    transition={{ duration: 0.35, ease: [0.43, 0.13, 0.23, 0.96] }}
+                  >
+                  {/* Glow effect on hover - same as hero image */}
+                  <motion.div
+                    className="absolute inset-0 rounded-lg pointer-events-none"
+                    initial={{ opacity: 0 }}
+                    whileHover={{ opacity: 0.3 }}
+                    transition={{ duration: 0.6 }}
+                    style={{
+                      background: 'radial-gradient(circle at center, rgba(255,255,255,0.2) 0%, transparent 70%)',
+                    }}
+                  />
+                  
                   <Quote className="absolute top-4 right-4 text-[rgb(var(--foreground))] opacity-10 group-hover:opacity-30 transition-opacity" size={32} />
                   
                   <h4 className="mb-2 uppercase tracking-wider text-sm">{poem.title}</h4>
                   <p className="text-[rgb(var(--muted-foreground))] text-xs mb-4">{poem.date}</p>
                   
                   {/* Snippet Preview */}
-                  <div className="space-y-2 mb-4 font-['Raleway',sans-serif] italic">
+                  <div className="space-y-2 mb-4 font-['Raleway',sans-serif] italic flex-grow">
                     {getSnippet(poem.lines).map((line, lineIndex) => (
                       <p key={lineIndex} className="text-sm leading-relaxed text-[rgb(var(--muted-foreground))]">
                         {line}
@@ -720,7 +805,7 @@ export function Poetry({ onClose }: PoetryProps) {
                       e.stopPropagation();
                       toggleLike(poemIndex);
                     }}
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 mt-auto"
                   >
                     <Heart
                       size={18}
@@ -731,154 +816,163 @@ export function Poetry({ onClose }: PoetryProps) {
                       }`}
                     />
                     <span className="text-xs text-[rgb(var(--muted-foreground))]">
-                      {liked.includes(poemIndex) ? 'Liked' : 'Like'}
+                      {liked.includes(poemIndex) ? 'Liked' : 'Like'} - {likeCount}
                     </span>
                   </motion.button>
                   </motion.div>
+                  </motion.div>
                 );
               })}
-            </div>
+        </div>
 
-            {/* Read More Button */}
-            {!showAll && morePoems.length > 0 && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5 }}
-                className="mt-12 text-center"
-              >
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setShowAll(true)}
-                  className="px-8 py-3 bg-[rgb(var(--foreground))] text-[rgb(var(--background))] rounded-lg hover:bg-[rgb(var(--secondary))] transition-all flex items-center gap-2 mx-auto"
+              {/* Read More Button */}
+              {!showAll && morePoems.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.5 }}
+                  className="mt-12 mb-16 text-center"
                 >
-                  Read More Poems
-                  <ChevronDown size={20} />
-                </motion.button>
-              </motion.div>
-            )}
-
-            {/* Quote */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.8 }}
-              className="mt-12 text-center"
-            >
-              <p className="text-[rgb(var(--muted-foreground))] italic mb-4">
-                "Poetry is the spontaneous overflow of powerful feelings: it takes its origin from emotion recollected in tranquility."
-              </p>
-              <p className="text-sm text-[rgb(var(--muted-foreground))]">- William Wordsworth</p>
-            </motion.div>
-          </div>
-        </motion.div>
-
-        {/* Full Poem View */}
-        <AnimatePresence>
-          {selectedPoem !== null && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/95 backdrop-blur-md z-[60] flex items-center justify-center p-4"
-              onClick={() => setSelectedPoem(null)}
-            >
-              <motion.div
-                initial={{ scale: 0.8, opacity: 0, y: 50 }}
-                animate={{ scale: 1, opacity: 1, y: 0 }}
-                exit={{ scale: 0.8, opacity: 0, y: 50 }}
-                transition={{ type: 'spring', damping: 20 }}
-                className="relative w-full max-w-3xl max-h-[90vh] overflow-y-auto"
-                onClick={(e) => e.stopPropagation()}
-              >
-                {/* Background Pattern */}
-                <div 
-                  className="absolute inset-0 rounded-2xl opacity-40"
-                  style={{
-                    background: poems[selectedPoem].pattern,
-                    backgroundSize: '100px 100px'
-                  }}
-                />
-
-                {/* Content */}
-                <div className="relative bg-[rgb(var(--background))]/90 backdrop-blur-sm rounded-2xl border-2 border-[rgb(var(--border))] p-12 shadow-2xl">
-                  {/* Close Button */}
                   <motion.button
-                    whileHover={{ scale: 1.1, rotate: 90 }}
-                    whileTap={{ scale: 0.9 }}
-                    onClick={() => setSelectedPoem(null)}
-                    className="absolute top-6 right-6 p-2 bg-[rgb(var(--foreground))] text-[rgb(var(--background))] rounded-full hover:bg-[rgb(var(--secondary))] transition-colors"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setShowAll(true)}
+                    className="px-8 py-3 bg-[rgb(var(--foreground))] text-[rgb(var(--background))] rounded-lg hover:bg-[rgb(var(--secondary))] transition-all flex items-center gap-2 mx-auto shadow-lg shadow-[rgba(0,0,0,0.08)]"
                   >
-                    <X size={20} />
+                    Read More Poems
+                    <ChevronDown size={20} />
                   </motion.button>
+                </motion.div>
+              )}
 
-                  {/* Decorative Quote */}
-                  <Quote className="absolute top-6 left-6 text-[rgb(var(--foreground))] opacity-10" size={48} />
-
-                  {/* Poem Header */}
-                  <motion.div
-                    initial={{ opacity: 0, y: -20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 }}
-                    className="text-center mb-12"
+              {showAll && (
+                <div className="mt-12 mb-16 text-center">
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setShowAll(false)}
+                    className="px-8 py-3 bg-[rgb(var(--muted))] text-[rgb(var(--foreground))] rounded-lg border border-[rgb(var(--border))] hover:bg-[rgb(var(--foreground))] hover:text-[rgb(var(--background))] transition-all flex items-center gap-2 mx-auto shadow-lg shadow-[rgba(0,0,0,0.08)]"
                   >
-                    <h2 className="mb-2 uppercase tracking-wider">{poems[selectedPoem].title}</h2>
-                    <p className="text-[rgb(var(--muted-foreground))] text-sm">{poems[selectedPoem].date}</p>
-                  </motion.div>
-
-                  {/* Full Poem */}
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.4 }}
-                    className="space-y-3 mb-8 font-['Raleway',sans-serif] max-w-xl mx-auto"
-                  >
-                    {poems[selectedPoem].lines.map((line, lineIndex) => (
-                      <motion.p
-                        key={lineIndex}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.5 + lineIndex * 0.1 }}
-                        className={line === '' ? 'h-4' : 'text-center italic leading-relaxed'}
-                      >
-                        {line}
-                      </motion.p>
-                    ))}
-                  </motion.div>
-
-                  {/* Like Button */}
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.8 }}
-                    className="flex justify-center"
-                  >
-                    <motion.button
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => toggleLike(selectedPoem)}
-                      className="flex items-center gap-3 px-6 py-3 bg-[rgb(var(--muted))] rounded-full border border-[rgb(var(--border))] hover:bg-[rgb(var(--foreground))] hover:text-[rgb(var(--background))] transition-all"
-                    >
-                      <Heart
-                        size={20}
-                        className={`transition-colors ${
-                          liked.includes(selectedPoem)
-                            ? 'fill-[rgb(var(--foreground))] text-[rgb(var(--foreground))]'
-                            : ''
-                        }`}
-                      />
-                      <span className="text-sm">
-                        {liked.includes(selectedPoem) ? 'Liked' : 'Like this poem'}
-                      </span>
-                    </motion.button>
-                  </motion.div>
+                    Show Less
+                  </motion.button>
                 </div>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </motion.div>
-    </AnimatePresence>
+              )}
+
+            </div>
+            {/* Full Poem View */}
+            <AnimatePresence>
+              {selectedPoem !== null && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 bg-black/90 backdrop-blur-md z-[60] flex items-center justify-center p-4"
+                  onClick={() => setSelectedPoem(null)}
+                >
+                  <div className="pointer-events-none absolute inset-0">
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(255,255,255,0.2),_transparent_70%)] blur-3xl opacity-80" />
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_35%_45%,_rgba(255,255,255,0.1),_transparent_60%)] blur-3xl opacity-70" />
+                  </div>
+                  <motion.div
+                    initial={{ scale: 0.92, opacity: 0, y: 20 }}
+                    animate={{ scale: 1, opacity: 1, y: 0 }}
+                    exit={{ scale: 0.92, opacity: 0, y: 20 }}
+                    transition={{ type: 'spring', damping: 18 }}
+                    className="relative w-full max-w-3xl max-h-[90vh] overflow-y-auto"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {/* Glow effect behind the card */}
+                    <div 
+                      className="absolute inset-0 rounded-2xl pointer-events-none opacity-30 blur-2xl"
+                      style={{
+                        background: 'radial-gradient(circle at center, rgba(255,255,255,0.25) 0%, transparent 70%)',
+                      }}
+                    />
+                    <div className="relative bg-[rgb(var(--background))] rounded-2xl border-2 border-[rgb(var(--border))] p-12 md:p-14 shadow-2xl">
+
+                      <motion.button
+                        type="button"
+                        whileHover={{ scale: 1.08, rotate: 90 }}
+                        whileTap={{ scale: 0.92 }}
+                        onClick={() => setSelectedPoem(null)}
+                        className="absolute top-4 right-4 md:top-5 md:right-5 z-20 p-2 bg-[rgb(var(--foreground))] text-[rgb(var(--background))] rounded-full hover:bg-[rgb(var(--secondary))] transition-colors"
+                      >
+                        <X size={20} />
+                      </motion.button>
+
+                      <Quote className="absolute top-5 left-5 text-[rgb(var(--foreground))] opacity-10" size={48} />
+
+                      <motion.div
+                        initial={{ opacity: 0, y: -16 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.15 }}
+                        className="text-center mb-10"
+                      >
+                        <h2 className="mb-2 uppercase tracking-wider">{poems[selectedPoem].title}</h2>
+                        <p className="text-[rgb(var(--muted-foreground))] text-sm">{poems[selectedPoem].date}</p>
+                      </motion.div>
+
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.3 }}
+                        className="mt-6 space-y-4 mb-8 font-['Raleway',sans-serif] max-w-xl mx-auto"
+                      >
+                        {poems[selectedPoem].lines.map((line, lineIndex) => (
+                          <motion.p
+                            key={lineIndex}
+                            initial={{ opacity: 0, x: -14 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.35 + lineIndex * 0.08 }}
+                            className={line === '' ? 'h-4' : 'text-center italic leading-relaxed'}
+                          >
+                            {line}
+                          </motion.p>
+                        ))}
+                      </motion.div>
+
+                      <motion.div
+                        initial={{ opacity: 0, y: 12 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.4 }}
+                        className="flex justify-center"
+                      >
+                        <motion.button
+                          whileHover={{ scale: 1.06 }}
+                          whileTap={{ scale: 0.94 }}
+                          onClick={() => toggleLike(selectedPoem)}
+                          className="flex items-center gap-3 px-6 py-3 bg-[rgb(var(--muted))] rounded-full border border-[rgb(var(--border))] hover:bg-[rgb(var(--foreground))] hover:text-[rgb(var(--background))] transition-all shadow-lg shadow-[rgba(0,0,0,0.12)]"
+                        >
+                          <Heart
+                            size={20}
+                            className={`transition-colors ${
+                              liked.includes(selectedPoem)
+                                ? 'fill-[rgb(var(--foreground))] text-[rgb(var(--foreground))]'
+                                : ''
+                            }`}
+                          />
+                          <span className="text-sm">
+                            {liked.includes(selectedPoem) ? 'Liked' : 'Like this poem'} - {likeCounts[selectedPoem] ?? 0}
+                          </span>
+                        </motion.button>
+                      </motion.div>
+                    </div>
+                  </motion.div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <motion.footer
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true }}
+              className="py-8 px-4 sm:px-6 lg:px-8 border-t border-[rgb(var(--border))]"
+            >
+              <div className="max-w-7xl mx-auto text-center text-[rgb(var(--muted-foreground))]">
+                <p>© 2025 Nitesh. </p>
+                <p className="mt-2">Designed & Developed with React, TypeScript & Tailwind CSS</p>
+              </div>
+            </motion.footer>
+    </div>
   );
 }
