@@ -15,7 +15,7 @@ type Poem = {
   pattern: string;
 };
 
-export function Poetry({ onClose }: PoetryProps) {
+export function Poetry({}: PoetryProps) {
   const [darkMode, setDarkMode] = useState(true);
   const [liked, setLiked] = useState<number[]>([]);
   const [likeCounts, setLikeCounts] = useState<number[]>([]);
@@ -673,7 +673,6 @@ export function Poetry({ onClose }: PoetryProps) {
   const highlightedPoems = poems.slice(0, 6);
   const morePoems = poems.slice(6);
   const displayedPoems = showAll ? poems : highlightedPoems;
-  const totalLikes = likeCounts.reduce((sum, count) => sum + (Number.isFinite(count) ? count : 0), 0);
 
   const toggleLike = (index: number) => {
     setLiked(prev => {
@@ -749,7 +748,7 @@ export function Poetry({ onClose }: PoetryProps) {
 
           {/* Poems Grid */}
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 auto-rows-fr">
-            {displayedPoems.map((poem, index) => {
+            {displayedPoems.map((poem) => {
                 const poemIndex = poems.indexOf(poem);
                 const likeCount = likeCounts[poemIndex] ?? 0;
 
