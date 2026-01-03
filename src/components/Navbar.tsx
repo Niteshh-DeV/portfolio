@@ -1,15 +1,16 @@
 import { useState, useEffect } from 'react';
 import { Moon, Sun, Menu, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import heroLogo from '@/assets/logo2.jpeg';
+import { useNavigate } from 'react-router-dom';
+import heroLogo from '@/assets/Krishna.jpeg';
 
 interface NavbarProps {
   darkMode: boolean;
   toggleDarkMode: () => void;
-  openPoetry: () => void;
 }
 
-export function Navbar({ darkMode, toggleDarkMode, openPoetry }: NavbarProps) {
+export function Navbar({ darkMode, toggleDarkMode }: NavbarProps) {
+  const navigate = useNavigate();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -25,29 +26,28 @@ export function Navbar({ darkMode, toggleDarkMode, openPoetry }: NavbarProps) {
 
   const scrollToSection = (section: string) => {
     if (section === 'Poetry') {
-      openPoetry();
+      navigate('/poetry');
       setIsMobileMenuOpen(false);
       return;
     }
-    
-    const element = document.getElementById(section.toLowerCase());
-    if (element) {
-      // Close mobile menu first
-      setIsMobileMenuOpen(false);
-      
-      // Add a small delay to let the menu close, then scroll
-      setTimeout(() => {
-        // Calculate offset to account for fixed navbar (64px = h-16)
-        const navbarHeight = 64;
-        const elementPosition = element.getBoundingClientRect().top + window.pageYOffset;
-        const offsetPosition = elementPosition - navbarHeight;
 
-        window.scrollTo({
-          top: offsetPosition,
-          behavior: 'smooth'
-        });
-      }, 300); // 300ms matches the menu animation duration
-    }
+    // Ensure we are on home, then scroll to the section
+    navigate('/');
+    setIsMobileMenuOpen(false);
+
+    setTimeout(() => {
+      const element = document.getElementById(section.toLowerCase());
+      if (!element) return;
+
+      const navbarHeight = 64;
+      const elementPosition = element.getBoundingClientRect().top + window.pageYOffset;
+      const offsetPosition = elementPosition - navbarHeight;
+
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      });
+    }, 300);
   };
 
   return (
@@ -63,15 +63,20 @@ export function Navbar({ darkMode, toggleDarkMode, openPoetry }: NavbarProps) {
           <motion.div
             whileHover={{ scale: 1.05 }}
             className="cursor-pointer"
-            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            onClick={() => {
+              navigate('/');
+              setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 150);
+            }}
           >
             <div className="flex items-center gap-2">
               <img
                 src={heroLogo}
                 alt="Nitesh logo"
-                className="w-8 h-8 rounded-full object-cover border border-[rgb(var(--foreground))]/20"
+                className="w-auto h-12 rounded-md object-cover"
               />
-              <span className="text-5.5xl font-normal" style={{ fontFamily: '"Tapestry", cursive' }}>Nitesh.Dev</span>
+              <span className="text-5.5xl font-bold" style={{ fontFamily: '"Orbitron", sans-serif' }}>
+                NITESH<span style={{ color: '#ff6b35' }}>.DEV</span>
+              </span>
             </div>
           </motion.div>
 
@@ -81,11 +86,12 @@ export function Navbar({ darkMode, toggleDarkMode, openPoetry }: NavbarProps) {
               <motion.button
                 key={item}
                 initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                whileHover={{ y: -2 }}
+                animate={{ opacity: 1, y: 0, color: 'rgb(var(--foreground))' }}
+                transition={{ delay: index * 0.1, duration: 0.3 }}
+                whileHover={{ y: -2, color: '#ff6b35' }}
                 onClick={() => scrollToSection(item)}
-                className="text-[rgb(var(--foreground))] hover:text-[rgb(var(--secondary))] transition-colors uppercase tracking-wider font-semibold text-sm"
+                className="uppercase tracking-wider font-semibold text-sm"
+                style={{ fontFamily: '"Orbitron", sans-serif' }}
               >
                 {item}
               </motion.button>
@@ -131,7 +137,8 @@ export function Navbar({ darkMode, toggleDarkMode, openPoetry }: NavbarProps) {
                 <button
                   key={item}
                   onClick={() => scrollToSection(item)}
-                  className="block w-full text-left px-4 py-2 hover:bg-[rgb(var(--muted))] rounded-none transition-colors uppercase tracking-wider font-semibold"
+                  className="block w-full text-left px-4 py-2 hover:bg-[rgb(var(--muted))] hover:text-[#ff6b35] rounded-none transition-all duration-300 uppercase tracking-wider font-semibold"
+                  style={{ fontFamily: '"Orbitron", sans-serif' }}
                 >
                   {item}
                 </button>

@@ -91,7 +91,7 @@ export function Hero({ heroImage }: HeroProps) {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.3 }}
-              className="text-gray-300 mb-2 text-sm md:text-base tracking-wide"
+              className="text-gray-600 mb-2 text-sm md:text-base tracking-wide opacity-40"
             >
               Hi, I am
             </motion.p>
@@ -113,8 +113,17 @@ export function Hero({ heroImage }: HeroProps) {
               transition={{ delay: 0.5 }}
               className="mb-8 md:mb-12 text-base md:text-xl h-8 flex items-center"
             >
-              <h3 className="text-gray-400 font-light">
-                {displayedText}
+              <h3 className="text-gray-400 font-light" style={{ fontFamily: '"Orbitron", sans-serif' }}>
+                {displayedText.split(' ').map((word, index) => (
+                  <span key={index}>
+                    {index === 0 ? (
+                      <span style={{ color: '#ff6b35' }}>{word}</span>
+                    ) : (
+                      word
+                    )}
+                    {index < displayedText.split(' ').length - 1 ? ' ' : ''}
+                  </span>
+                ))}
                 <span className="animate-pulse">|</span>
               </h3>
             </motion.div>
