@@ -2,6 +2,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useState, useEffect } from 'react';
 import { Quote, Heart, X, ChevronDown } from 'lucide-react';
 import { Navbar } from './Navbar';
+import { SEO } from './SEO';
 import heroLogo from '@/assets/Krishna.jpeg';
 
 interface PoetryProps {
@@ -696,6 +697,12 @@ export function Poetry({}: PoetryProps) {
 
   return (
     <div className="relative min-h-screen bg-[rgb(var(--background))] overflow-hidden">
+      <SEO 
+        title="Poetry | Nitesh Joshi"
+        description="Explore Nitesh Joshi's collection of heartfelt poems and verses. Discover poetry about love, life, and personal reflections."
+        url="https://niteshjoshi.me/poetry"
+        type="article"
+      />
       <Navbar darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
 
       {/* Spacer to clear the fixed navbar */}
