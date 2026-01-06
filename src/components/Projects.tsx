@@ -18,7 +18,7 @@ export function Projects() {
       description: 'Built a responsive and interactive personal portfolio website to showcase my projects, skills, and experience.',
       tags: ['TypeScript', 'React', 'Tailwind CSS', 'Vite'],
       github: 'https://github.com/Niteshh-DeV/portfolio',
-      live: 'https://your-portfolio-url.com',
+      live: 'https://niteshjoshi.me',
       image: project1Img
 
     },
