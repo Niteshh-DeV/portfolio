@@ -62,27 +62,39 @@ export default async function handler(
     return;
   }
 
-  if (req.method === 'GET') {
+  if (req.method === 'GET' || req.method === 'get') {
     try {
       // Check if Redis is configured
       if (!redisUrl || !redisToken) {
+        console.error('Redis not configured - missing environment variables');
         return res.status(500).json({ 
           error: 'Redis not configured',
-          message: 'KV_REST_API_URL and KV_REST_API_TOKEN must be set'
+          message: 'KV_REST_API_URL and KV_REST_API_TOKEN must be set in Vercel environment variables',
+          redisUrl: redisUrl ? 'Set' : 'Missing',
+          redisToken: redisToken ? 'Set' : 'Missing'
         });
       }
+      console.log('Fetching likes from Redis...');
       const likes = await readLikes();
+      console.log('Likes fetched:', likes);
       res.status(200).json(likes);
     } catch (error) {
       console.error('Error fetching likes:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorStack = error instanceof Error ? error.stack : undefined;
       res.status(500).json({ 
         error: 'Failed to fetch likes',
-        details: errorMessage
+        details: errorMessage,
+        stack: process.env.NODE_ENV === 'development' ? errorStack : undefined
       });
     }
   } else {
-    res.status(405).json({ error: 'Method not allowed' });
+    console.error('Method not allowed:', req.method);
+    res.status(405).json({ 
+      error: 'Method not allowed',
+      received: req.method,
+      allowed: ['GET']
+    });
   }
 }
 

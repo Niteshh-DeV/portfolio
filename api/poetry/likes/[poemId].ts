@@ -70,11 +70,16 @@ export default async function handler(
     return;
   }
 
+  // Debug logging
+  console.log('Request method:', req.method);
+  console.log('Request query:', req.query);
+
   const { poemId } = req.query;
   const poemIndex = parseInt(poemId as string, 10);
 
   if (isNaN(poemIndex)) {
-    res.status(400).json({ error: 'Invalid poem ID' });
+    console.error('Invalid poem ID:', poemId);
+    res.status(400).json({ error: 'Invalid poem ID', received: poemId });
     return;
   }
 
@@ -90,18 +95,25 @@ export default async function handler(
     const likes = await readLikes();
     const currentCount = likes[poemIndex] || 0;
 
-    if (req.method === 'POST') {
+    if (req.method === 'POST' || req.method === 'post') {
       // Increment like count
+      console.log(`Incrementing like for poem ${poemIndex}`);
       likes[poemIndex] = currentCount + 1;
       await writeLikes(likes);
       res.status(200).json({ poemId: poemIndex, count: likes[poemIndex] });
-    } else if (req.method === 'DELETE') {
+    } else if (req.method === 'DELETE' || req.method === 'delete') {
       // Decrement like count (minimum 0)
+      console.log(`Decrementing like for poem ${poemIndex}`);
       likes[poemIndex] = Math.max(0, currentCount - 1);
       await writeLikes(likes);
       res.status(200).json({ poemId: poemIndex, count: likes[poemIndex] });
     } else {
-      res.status(405).json({ error: 'Method not allowed' });
+      console.error('Method not allowed:', req.method);
+      res.status(405).json({ 
+        error: 'Method not allowed',
+        received: req.method,
+        allowed: ['POST', 'DELETE']
+      });
     }
   } catch (error) {
     console.error('Error updating likes:', error);
