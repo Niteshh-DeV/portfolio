@@ -1,4 +1,4 @@
-import { Redis } from '@upstash/redis';
+const { Redis } = require('@upstash/redis');
 
 // Vercel serverless function types
 interface VercelRequest {
@@ -20,30 +20,44 @@ interface VercelResponse {
 const redisUrl = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL || '';
 const redisToken = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN || '';
 
-if (!redisUrl || !redisToken) {
-  console.error('Redis configuration missing! Check environment variables.');
-}
+let redis: any = null;
 
-const redis = new Redis({
-  url: redisUrl,
-  token: redisToken,
-});
+if (redisUrl && redisToken) {
+  try {
+    redis = new Redis({
+      url: redisUrl,
+      token: redisToken,
+    });
+  } catch (error) {
+    console.error('Failed to initialize Redis client:', error);
+  }
+} else {
+  console.error('Redis configuration missing!');
+  console.error('KV_REST_API_URL:', redisUrl ? 'Set' : 'Missing');
+  console.error('KV_REST_API_TOKEN:', redisToken ? 'Set' : 'Missing');
+}
 
 const LIKES_KEY = 'poetry:likes';
 
 // Read likes from Redis
 const readLikes = async (): Promise<Record<number, number>> => {
+  if (!redis) {
+    throw new Error('Redis client not initialized');
+  }
   try {
-    const data = await redis.get<Record<number, number>>(LIKES_KEY);
-    return data || {};
+    const data = await redis.get(LIKES_KEY);
+    return (data as Record<number, number>) || {};
   } catch (error) {
     console.error('Error reading likes from Redis:', error);
-    return {};
+    throw error;
   }
 };
 
 // Write likes to Redis
 const writeLikes = async (likes: Record<number, number>) => {
+  if (!redis) {
+    throw new Error('Redis client not initialized');
+  }
   try {
     await redis.set(LIKES_KEY, likes);
   } catch (error) {
@@ -52,7 +66,7 @@ const writeLikes = async (likes: Record<number, number>) => {
   }
 };
 
-export default async function handler(
+module.exports = async function handler(
   req: VercelRequest,
   res: VercelResponse
 ) {
@@ -84,10 +98,18 @@ export default async function handler(
   }
 
   // Check if Redis is configured before processing
-  if (!redisUrl || !redisToken) {
+  if (!redis) {
     return res.status(500).json({ 
       error: 'Redis not configured',
-      message: 'KV_REST_API_URL and KV_REST_API_TOKEN must be set in Vercel environment variables'
+      message: 'KV_REST_API_URL and KV_REST_API_TOKEN must be set in Vercel environment variables',
+      redisUrl: redisUrl ? 'Set (length: ' + redisUrl.length + ')' : 'Missing',
+      redisToken: redisToken ? 'Set (length: ' + redisToken.length + ')' : 'Missing',
+      envCheck: {
+        KV_REST_API_URL: !!process.env.KV_REST_API_URL,
+        KV_REST_API_TOKEN: !!process.env.KV_REST_API_TOKEN,
+        UPSTASH_REDIS_REST_URL: !!process.env.UPSTASH_REDIS_REST_URL,
+        UPSTASH_REDIS_REST_TOKEN: !!process.env.UPSTASH_REDIS_REST_TOKEN
+      }
     });
   }
 

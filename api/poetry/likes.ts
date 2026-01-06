@@ -1,4 +1,4 @@
-import { Redis } from '@upstash/redis';
+const { Redis } = require('@upstash/redis');
 
 // Vercel serverless function types
 interface VercelRequest {
@@ -20,31 +20,40 @@ interface VercelResponse {
 const redisUrl = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL || '';
 const redisToken = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN || '';
 
-if (!redisUrl || !redisToken) {
-  console.error('Redis configuration missing! Check environment variables.');
+let redis: any = null;
+
+if (redisUrl && redisToken) {
+  try {
+    redis = new Redis({
+      url: redisUrl,
+      token: redisToken,
+    });
+  } catch (error) {
+    console.error('Failed to initialize Redis client:', error);
+  }
+} else {
+  console.error('Redis configuration missing!');
   console.error('KV_REST_API_URL:', redisUrl ? 'Set' : 'Missing');
   console.error('KV_REST_API_TOKEN:', redisToken ? 'Set' : 'Missing');
 }
-
-const redis = new Redis({
-  url: redisUrl,
-  token: redisToken,
-});
 
 const LIKES_KEY = 'poetry:likes';
 
 // Read likes from Redis
 const readLikes = async (): Promise<Record<number, number>> => {
+  if (!redis) {
+    throw new Error('Redis client not initialized');
+  }
   try {
-    const data = await redis.get<Record<number, number>>(LIKES_KEY);
-    return data || {};
+    const data = await redis.get(LIKES_KEY);
+    return (data as Record<number, number>) || {};
   } catch (error) {
     console.error('Error reading likes from Redis:', error);
-    return {};
+    throw error;
   }
 };
 
-export default async function handler(
+module.exports = async function handler(
   req: VercelRequest,
   res: VercelResponse
 ) {
@@ -65,13 +74,19 @@ export default async function handler(
   if (req.method === 'GET' || req.method === 'get') {
     try {
       // Check if Redis is configured
-      if (!redisUrl || !redisToken) {
-        console.error('Redis not configured - missing environment variables');
+      if (!redis) {
+        console.error('Redis not initialized');
         return res.status(500).json({ 
           error: 'Redis not configured',
           message: 'KV_REST_API_URL and KV_REST_API_TOKEN must be set in Vercel environment variables',
-          redisUrl: redisUrl ? 'Set' : 'Missing',
-          redisToken: redisToken ? 'Set' : 'Missing'
+          redisUrl: redisUrl ? 'Set (length: ' + redisUrl.length + ')' : 'Missing',
+          redisToken: redisToken ? 'Set (length: ' + redisToken.length + ')' : 'Missing',
+          envCheck: {
+            KV_REST_API_URL: !!process.env.KV_REST_API_URL,
+            KV_REST_API_TOKEN: !!process.env.KV_REST_API_TOKEN,
+            UPSTASH_REDIS_REST_URL: !!process.env.UPSTASH_REDIS_REST_URL,
+            UPSTASH_REDIS_REST_TOKEN: !!process.env.UPSTASH_REDIS_REST_TOKEN
+          }
         });
       }
       console.log('Fetching likes from Redis...');
@@ -81,11 +96,15 @@ export default async function handler(
     } catch (error) {
       console.error('Error fetching likes:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      const errorStack = error instanceof Error ? error.stack : undefined;
+      const errorDetails = error instanceof Error ? {
+        message: error.message,
+        name: error.name,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      } : {};
       res.status(500).json({ 
         error: 'Failed to fetch likes',
         details: errorMessage,
-        stack: process.env.NODE_ENV === 'development' ? errorStack : undefined
+        ...errorDetails
       });
     }
   } else {
