@@ -4,6 +4,7 @@ import { Quote, Heart, X, ChevronDown } from 'lucide-react';
 import { Navbar } from './Navbar';
 import { SEO } from './SEO';
 import heroLogo from '@/assets/Krishna.jpeg';
+import { fetchLikes, incrementLike, decrementLike } from '@/utils/poetryApi';
 
 interface PoetryProps {
   onClose?: () => void;
@@ -650,45 +651,81 @@ export function Poetry({}: PoetryProps) {
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
+    // Load user's liked poems from localStorage (client-side preference)
     const storedLiked = localStorage.getItem('poetry-liked');
-    const storedCounts = localStorage.getItem('poetry-like-counts');
-
     setLiked(storedLiked ? JSON.parse(storedLiked) : []);
 
-    const parsedCounts: number[] = storedCounts ? JSON.parse(storedCounts) : poems.map(() => 0);
-    const normalizedCounts = poems.map((_, idx) => parsedCounts[idx] ?? 0);
-    setLikeCounts(normalizedCounts);
+    // Fetch like counts from backend API
+    const loadLikes = async () => {
+      try {
+        const likesData = await fetchLikes();
+        const normalizedCounts = poems.map((_, idx) => likesData[idx] ?? 0);
+        setLikeCounts(normalizedCounts);
+      } catch (error) {
+        console.error('Failed to load likes:', error);
+        // Fallback to empty counts if API fails
+        setLikeCounts(poems.map(() => 0));
+      }
+    };
+
+    loadLikes();
   }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
+    // Save user's liked poems to localStorage (client-side preference only)
     localStorage.setItem('poetry-liked', JSON.stringify(liked));
   }, [liked]);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    if (!likeCounts.length) return;
-    localStorage.setItem('poetry-like-counts', JSON.stringify(likeCounts));
-  }, [likeCounts]);
 
   const highlightedPoems = poems.slice(0, 6);
   const morePoems = poems.slice(6);
   const displayedPoems = showAll ? poems : highlightedPoems;
 
-  const toggleLike = (index: number) => {
+  const toggleLike = async (index: number) => {
+    const alreadyLiked = liked.includes(index);
+    
+    // Optimistically update UI
     setLiked(prev => {
-      const alreadyLiked = prev.includes(index);
-      const updatedLiked = alreadyLiked ? prev.filter(i => i !== index) : [...prev, index];
+      return alreadyLiked ? prev.filter(i => i !== index) : [...prev, index];
+    });
 
+    setLikeCounts(prevCounts => {
+      const nextCounts = prevCounts.length ? [...prevCounts] : poems.map(() => 0);
+      const nextValue = (nextCounts[index] ?? 0) + (alreadyLiked ? -1 : 1);
+      nextCounts[index] = Math.max(0, nextValue);
+      return nextCounts;
+    });
+
+    // Update backend
+    try {
+      if (alreadyLiked) {
+        const newCount = await decrementLike(index);
+        setLikeCounts(prevCounts => {
+          const updated = [...prevCounts];
+          updated[index] = newCount;
+          return updated;
+        });
+      } else {
+        const newCount = await incrementLike(index);
+        setLikeCounts(prevCounts => {
+          const updated = [...prevCounts];
+          updated[index] = newCount;
+          return updated;
+        });
+      }
+    } catch (error) {
+      console.error('Failed to update like:', error);
+      // Revert optimistic update on error
+      setLiked(prev => {
+        return alreadyLiked ? [...prev, index] : prev.filter(i => i !== index);
+      });
       setLikeCounts(prevCounts => {
-        const nextCounts = prevCounts.length ? [...prevCounts] : poems.map(() => 0);
-        const nextValue = (nextCounts[index] ?? 0) + (alreadyLiked ? -1 : 1);
+        const nextCounts = [...prevCounts];
+        const nextValue = (nextCounts[index] ?? 0) + (alreadyLiked ? 1 : -1);
         nextCounts[index] = Math.max(0, nextValue);
         return nextCounts;
       });
-
-      return updatedLiked;
-    });
+    }
   };
 
   const getSnippet = (lines: string[]) => {
