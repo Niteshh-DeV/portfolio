@@ -34,7 +34,9 @@ export async function incrementLike(poemId: number): Promise<number> {
       },
     });
     if (!response.ok) {
-      throw new Error('Failed to increment like');
+      const errorData = await response.json().catch(() => ({}));
+      console.error('API Error:', response.status, errorData);
+      throw new Error(errorData.error || `Failed to increment like: ${response.status}`);
     }
     const data = await response.json();
     return data.count;
@@ -56,7 +58,9 @@ export async function decrementLike(poemId: number): Promise<number> {
       },
     });
     if (!response.ok) {
-      throw new Error('Failed to decrement like');
+      const errorData = await response.json().catch(() => ({}));
+      console.error('API Error:', response.status, errorData);
+      throw new Error(errorData.error || `Failed to decrement like: ${response.status}`);
     }
     const data = await response.json();
     return data.count;

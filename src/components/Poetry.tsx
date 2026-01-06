@@ -715,6 +715,8 @@ export function Poetry({}: PoetryProps) {
       }
     } catch (error) {
       console.error('Failed to update like:', error);
+      // Show user-friendly error message
+      alert('Failed to update like. Please check your connection and try again.');
       // Revert optimistic update on error
       setLiked(prev => {
         return alreadyLiked ? [...prev, index] : prev.filter(i => i !== index);

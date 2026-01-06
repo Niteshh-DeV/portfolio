@@ -1,3 +1,5 @@
 node_modules
 data/poetry-likes.json
 /tmp/poetry-likes.json
+.vercel
+.env*.local

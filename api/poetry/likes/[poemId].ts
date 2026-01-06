@@ -17,9 +17,16 @@ interface VercelResponse {
 // Initialize Redis client (supports both Upstash Redis and Vercel KV)
 // Vercel KV uses KV_REST_API_URL and KV_REST_API_TOKEN
 // Upstash Redis uses UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN
+const redisUrl = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL || '';
+const redisToken = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN || '';
+
+if (!redisUrl || !redisToken) {
+  console.error('Redis configuration missing! Check environment variables.');
+}
+
 const redis = new Redis({
-  url: process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL || '',
-  token: process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN || '',
+  url: redisUrl,
+  token: redisToken,
 });
 
 const LIKES_KEY = 'poetry:likes';
@@ -71,6 +78,14 @@ export default async function handler(
     return;
   }
 
+  // Check if Redis is configured before processing
+  if (!redisUrl || !redisToken) {
+    return res.status(500).json({ 
+      error: 'Redis not configured',
+      message: 'KV_REST_API_URL and KV_REST_API_TOKEN must be set in Vercel environment variables'
+    });
+  }
+
   try {
     const likes = await readLikes();
     const currentCount = likes[poemIndex] || 0;
@@ -90,7 +105,16 @@ export default async function handler(
     }
   } catch (error) {
     console.error('Error updating likes:', error);
-    res.status(500).json({ error: 'Failed to update likes' });
+    // Return detailed error for debugging
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    res.status(500).json({ 
+      error: 'Failed to update likes',
+      details: errorMessage,
+      stack: process.env.NODE_ENV === 'development' ? errorStack : undefined,
+      redisUrl: redisUrl ? 'Set' : 'Missing',
+      redisToken: redisToken ? 'Set' : 'Missing'
+    });
   }
 }
 
