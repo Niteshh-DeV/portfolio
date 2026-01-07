@@ -8,6 +8,7 @@ import { Contact } from '../components/Contact';
 import { SEO } from '../components/SEO';
 import { motion } from 'motion/react';
 import heroImg from '@/assets/hero.jpeg';
+import heroImg2 from '@/assets/Hero3.jpeg';
 
 export default function HomePage() {
   const [darkMode, setDarkMode] = useState(true);
@@ -106,7 +107,7 @@ export default function HomePage() {
       <Navbar darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
 
       <main>
-        <Hero heroImage={heroImage} />
+        <Hero heroImage={heroImage} hoverHeroImage={heroImg2} />
         <About />
         <Skills />
         <Projects />

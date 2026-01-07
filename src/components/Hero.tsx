@@ -4,9 +4,10 @@ import { useState, useEffect } from 'react';
 
 interface HeroProps {
   heroImage: string;
+  hoverHeroImage?: string;
 }
 
-export function Hero({ heroImage }: HeroProps) {
+export function Hero({ heroImage, hoverHeroImage }: HeroProps) {
   const titles = [
     'Engineering Student',
     'Poet',
@@ -129,7 +130,7 @@ export function Hero({ heroImage }: HeroProps) {
             </motion.div>
           </motion.div>
 
-          {/* Image with Expand Effect */}
+          {/* Image with Expand + Crossfade Effect */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -149,17 +150,38 @@ export function Hero({ heroImage }: HeroProps) {
                 ease: [0.43, 0.13, 0.23, 0.96]
               }}
             >
+              {/* Base image */}
               <motion.img
                 src={heroImage}
                 alt="Nitesh Joshi - Profile"
                 className="w-full h-auto object-contain rounded-2xl"
                 animate={{
+                  opacity: hoverHeroImage ? (isImageExpanded ? 0 : 1) : 1,
+                  scale: isImageExpanded && hoverHeroImage ? 1.02 : 1,
                   boxShadow: isImageExpanded 
                     ? '0 25px 50px -12px rgba(255, 255, 255, 0.25)' 
                     : '0 20px 25px -5px rgba(0, 0, 0, 0.5)'
                 }}
-                transition={{ duration: 0.6 }}
+                transition={{ duration: 0.6, opacity: { duration: 0.5 }, scale: { duration: 0.5 } }}
               />
+
+              {/* Hover image overlay (crossfade in on hover) */}
+              {hoverHeroImage && (
+                <motion.img
+                  src={hoverHeroImage}
+                  alt="Nitesh Joshi - Profile (Hover)"
+                  className="absolute inset-0 w-full h-full object-contain rounded-2xl"
+                  initial={{ opacity: 0 }}
+                  animate={{
+                    opacity: isImageExpanded ? 1 : 0,
+                    scale: isImageExpanded ? 1 : 0.98,
+                    boxShadow: isImageExpanded 
+                      ? '0 25px 50px -12px rgba(255, 255, 255, 0.25)' 
+                      : '0 20px 25px -5px rgba(0, 0, 0, 0.5)'
+                  }}
+                  transition={{ duration: 0.6, opacity: { duration: 0.5 }, scale: { duration: 0.5 } }}
+                />
+              )}
               
               {/* Glow effect on hover */}
               <motion.div
