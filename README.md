@@ -60,7 +60,7 @@ npm install
 npm run dev
 ```
 
-4. Open your browser and navigate to `http://localhost:5173`
+4. Open your browser and navigate to `http://localhost:3000`
 
 ### Build for Production
 
@@ -69,7 +69,7 @@ To create a production build:
 npm run build
 ```
 
-The built files will be in the `dist` directory.
+The built files will be in the `build` directory.
 
 ## 📂 Project Structure
 
@@ -80,8 +80,11 @@ portfolio/
 │   ├── assets/      # Images and media files
 │   ├── components/  # React components
 │   ├── Fonts/       # Custom fonts
+│   ├── guidelines/  # Design guidelines
+│   ├── pages/       # Page components
 │   ├── styles/      # Style files
 │   ├── types/       # TypeScript type definitions
+│   ├── utils/       # Utility functions
 │   ├── App.tsx      # Main application component
 │   └── main.tsx     # Application entry point
 ├── index.html       # HTML template
