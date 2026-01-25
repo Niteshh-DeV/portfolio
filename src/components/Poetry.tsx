@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { useState, useEffect, useMemo } from 'react';
-import { Quote, Heart, X, ChevronDown, Share2 } from 'lucide-react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { Quote, Heart, X, ChevronDown, Share2, Shuffle, Sparkles } from 'lucide-react';
+import { toast } from 'sonner';
 import { Navbar } from './Navbar';
 import { SEO } from './SEO';
 import heroLogo from '@/assets/Krishna.jpeg';
@@ -17,6 +18,8 @@ export function Poetry({}: PoetryProps) {
   const [showAll, setShowAll] = useState(false);
   const [selectedPoem, setSelectedPoem] = useState<number | null>(null);
   const [shareStatus, setShareStatus] = useState<string | null>(null);
+  const [isLoadingLikes, setIsLoadingLikes] = useState(true);
+  const likeDebounceRef = useRef<Map<number, NodeJS.Timeout>>(new Map());
 
   const toSlug = (title: string, index: number) => {
     const base = title
@@ -68,8 +71,11 @@ export function Poetry({}: PoetryProps) {
         setLikeCounts(normalizedCounts);
       } catch (error) {
         console.error('Failed to load likes:', error);
+        toast.error('Failed to load likes. Please refresh the page.');
         // Fallback to empty counts if API fails
         setLikeCounts(poems.map(() => 0));
+      } finally {
+        setIsLoadingLikes(false);
       }
     };
 
@@ -120,6 +126,22 @@ export function Poetry({}: PoetryProps) {
     setTimeout(() => setShareStatus(null), 2200);
   };
 
+  const openRandomPoem = useCallback(() => {
+    const randomIndex = Math.floor(Math.random() * poems.length);
+    openPoem(randomIndex);
+  }, [poems.length]);
+
+  const getTodaysPick = useCallback(() => {
+    const today = new Date();
+    const dayOfYear = Math.floor((today.getTime() - new Date(today.getFullYear(), 0, 0).getTime()) / 86400000);
+    const pickIndex = dayOfYear % poems.length;
+    return pickIndex;
+  }, [poems.length]);
+
+  const openTodaysPick = useCallback(() => {
+    openPoem(getTodaysPick());
+  }, [getTodaysPick]);
+
   const sharePoem = async (index: number) => {
     if (typeof window === 'undefined') return;
 
@@ -152,7 +174,14 @@ export function Poetry({}: PoetryProps) {
   const morePoems = useMemo(() => poems.slice(6), [poems]);
   const displayedPoems = showAll ? poems : highlightedPoems;
 
-  const toggleLike = async (index: number) => {
+  const toggleLike = useCallback(async (index: number) => {
+    // Clear any pending debounce for this poem
+    const existingTimeout = likeDebounceRef.current.get(index);
+    if (existingTimeout) {
+      clearTimeout(existingTimeout);
+      likeDebounceRef.current.delete(index);
+    }
+
     const alreadyLiked = liked.includes(index);
     
     // Optimistically update UI
@@ -167,39 +196,44 @@ export function Poetry({}: PoetryProps) {
       return nextCounts;
     });
 
-    // Update backend
-    try {
-      if (alreadyLiked) {
-        const newCount = await decrementLike(index);
-        setLikeCounts(prevCounts => {
-          const updated = [...prevCounts];
-          updated[index] = newCount;
-          return updated;
+    // Debounce backend update
+    const timeout = setTimeout(async () => {
+      try {
+        if (alreadyLiked) {
+          const newCount = await decrementLike(index);
+          setLikeCounts(prevCounts => {
+            const updated = [...prevCounts];
+            updated[index] = newCount;
+            return updated;
+          });
+        } else {
+          const newCount = await incrementLike(index);
+          setLikeCounts(prevCounts => {
+            const updated = [...prevCounts];
+            updated[index] = newCount;
+            return updated;
+          });
+        }
+      } catch (error) {
+        console.error('Failed to update like:', error);
+        toast.error('Failed to update like. Please check your connection.');
+        // Revert optimistic update on error
+        setLiked(prev => {
+          return alreadyLiked ? [...prev, index] : prev.filter(i => i !== index);
         });
-      } else {
-        const newCount = await incrementLike(index);
         setLikeCounts(prevCounts => {
-          const updated = [...prevCounts];
-          updated[index] = newCount;
-          return updated;
+          const nextCounts = [...prevCounts];
+          const nextValue = (nextCounts[index] ?? 0) + (alreadyLiked ? 1 : -1);
+          nextCounts[index] = Math.max(0, nextValue);
+          return nextCounts;
         });
+      } finally {
+        likeDebounceRef.current.delete(index);
       }
-    } catch (error) {
-      console.error('Failed to update like:', error);
-      // Show user-friendly error message
-      alert('Failed to update like. Please check your connection and try again.');
-      // Revert optimistic update on error
-      setLiked(prev => {
-        return alreadyLiked ? [...prev, index] : prev.filter(i => i !== index);
-      });
-      setLikeCounts(prevCounts => {
-        const nextCounts = [...prevCounts];
-        const nextValue = (nextCounts[index] ?? 0) + (alreadyLiked ? 1 : -1);
-        nextCounts[index] = Math.max(0, nextValue);
-        return nextCounts;
-      });
-    }
-  };
+    }, 300);
+
+    likeDebounceRef.current.set(index, timeout);
+  }, [liked, poems]);
 
   const getSnippet = (lines: string[]) => {
     return lines.filter(line => line !== '').slice(0, 3);
@@ -261,11 +295,59 @@ export function Poetry({}: PoetryProps) {
           >
             A dedicated space for the verses, memories, and quiet thoughts. Lean back, scroll slow, and tap to read in full.
           </motion.p>
+
+          {/* Action Buttons */}
+          <motion.div
+            initial={{ opacity: 0, y: -2 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25 }}
+            className="flex flex-wrap justify-center gap-4 mt-6"
+          >
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={openRandomPoem}
+              className="flex items-center gap-3 px-6 py-3 bg-[rgb(var(--muted))] rounded-full border border-[rgb(var(--border))] hover:bg-[rgb(var(--foreground))] hover:text-[rgb(var(--background))] transition-all shadow-md"
+            >
+              <Shuffle size={18} />
+              <span className="text-sm font-medium">Random Poem</span>
+            </motion.button>
+
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={openTodaysPick}
+              className="flex items-center gap-3 px-6 py-3 bg-[rgb(var(--foreground))] text-[rgb(var(--background))] rounded-full border border-[rgb(var(--foreground))] hover:opacity-90 transition-all shadow-md"
+            >
+              <Sparkles size={18} />
+              <span className="text-sm font-medium">Today's Pick</span>
+            </motion.button>
+          </motion.div>
         </div>
 
           {/* Poems Grid */}
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 auto-rows-fr">
-            {displayedPoems.map((poem, poemIndex) => {
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 auto-rows-fr">{isLoadingLikes ? (
+              // Skeleton state
+              Array.from({ length: 6 }).map((_, idx) => (
+                <motion.div
+                  key={`skeleton-${idx}`}
+                  initial={{ opacity: 0, y: 30 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.35, delay: idx * 0.05 }}
+                  className="glass-effect p-6 rounded-lg border-2 border-[rgb(var(--border))] h-full flex flex-col"
+                >
+                  <div className="h-4 w-24 bg-[rgb(var(--muted))] rounded mb-2 animate-pulse" />
+                  <div className="h-3 w-32 bg-[rgb(var(--muted))] rounded mb-4 animate-pulse" />
+                  <div className="space-y-2 flex-grow">
+                    <div className="h-3 w-full bg-[rgb(var(--muted))] rounded animate-pulse" />
+                    <div className="h-3 w-5/6 bg-[rgb(var(--muted))] rounded animate-pulse" />
+                    <div className="h-3 w-4/5 bg-[rgb(var(--muted))] rounded animate-pulse" />
+                  </div>
+                  <div className="h-4 w-16 bg-[rgb(var(--muted))] rounded mt-4 animate-pulse" />
+                </motion.div>
+              ))
+            ) : (
+            displayedPoems.map((poem, poemIndex) => {
                 const likeCount = likeCounts[poemIndex] ?? 0;
                 const slug = toSlug(poem.title, poemIndex);
 
@@ -339,7 +421,8 @@ export function Poetry({}: PoetryProps) {
                   </motion.div>
                   </motion.div>
                 );
-              })}
+              })
+            )}
         </div>
 
               {/* Read More Button */}
