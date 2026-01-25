@@ -173,5 +173,3 @@ This project is open source and available for reference. Feel free to take inspi
 </div>
 
 ---
-
-Built with ❤️ by Nitesh Joshi
