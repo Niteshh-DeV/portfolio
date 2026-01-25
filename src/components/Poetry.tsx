@@ -24,6 +24,14 @@ export function Poetry({}: PoetryProps) {
   const [showAll, setShowAll] = useState(false);
   const [selectedPoem, setSelectedPoem] = useState<number | null>(null);
 
+  const toSlug = (title: string, index: number) => {
+    const base = title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '') || 'poem';
+    return `${base}-${index + 1}`;
+  };
+
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme === 'light') {
@@ -673,9 +681,42 @@ export function Poetry({}: PoetryProps) {
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const slug = params.get('poem');
+
+    if (!slug) return;
+
+    const matchedIndex = poems.findIndex((poem, idx) => toSlug(poem.title, idx) === slug);
+    if (matchedIndex >= 0) {
+      setSelectedPoem(matchedIndex);
+      const targetCard = document.getElementById(`poem-${matchedIndex}`);
+      targetCard?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
     // Save user's liked poems to localStorage (client-side preference only)
     localStorage.setItem('poetry-liked', JSON.stringify(liked));
   }, [liked]);
+
+  const openPoem = (index: number) => {
+    setSelectedPoem(index);
+    if (typeof window === 'undefined') return;
+
+    const url = new URL(window.location.href);
+    url.searchParams.set('poem', toSlug(poems[index].title, index));
+    window.history.replaceState({}, '', url.toString());
+  };
+
+  const closePoem = () => {
+    setSelectedPoem(null);
+    if (typeof window === 'undefined') return;
+
+    const url = new URL(window.location.href);
+    url.searchParams.delete('poem');
+    window.history.replaceState({}, '', url.toString());
+  };
 
   const highlightedPoems = poems.slice(0, 6);
   const morePoems = poems.slice(6);
@@ -794,18 +835,19 @@ export function Poetry({}: PoetryProps) {
 
           {/* Poems Grid */}
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 auto-rows-fr">
-            {displayedPoems.map((poem) => {
-                const poemIndex = poems.indexOf(poem);
+            {displayedPoems.map((poem, poemIndex) => {
                 const likeCount = likeCounts[poemIndex] ?? 0;
+                const slug = toSlug(poem.title, poemIndex);
 
                 return (
                   <motion.div
-                    key={`${poem.title}-${poem.date}-${poemIndex}`}
+                    id={`poem-${poemIndex}`}
+                    key={slug}
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.35, ease: [0.43, 0.13, 0.23, 0.96] }}
                     whileHover={{ scale: 1.15, zIndex: 10 }}
-                    onClick={() => setSelectedPoem(poemIndex)}
+                    onClick={() => openPoem(poemIndex)}
                     className="relative group cursor-pointer z-0 hover:z-10 h-full"
                   >
                   <motion.div 
@@ -912,7 +954,7 @@ export function Poetry({}: PoetryProps) {
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   className="fixed inset-0 bg-black/90 backdrop-blur-md z-[60] flex items-center justify-center p-4"
-                  onClick={() => setSelectedPoem(null)}
+                  onClick={closePoem}
                 >
                   <div className="pointer-events-none absolute inset-0">
                     <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(255,255,255,0.2),_transparent_70%)] blur-3xl opacity-80" />
@@ -939,7 +981,7 @@ export function Poetry({}: PoetryProps) {
                         type="button"
                         whileHover={{ scale: 1.08, rotate: 90 }}
                         whileTap={{ scale: 0.92 }}
-                        onClick={() => setSelectedPoem(null)}
+                        onClick={closePoem}
                         className="absolute top-4 right-4 md:top-5 md:right-5 z-20 p-2 bg-[rgb(var(--foreground))] text-[rgb(var(--background))] rounded-full hover:bg-[rgb(var(--secondary))] transition-colors"
                       >
                         <X size={20} />
