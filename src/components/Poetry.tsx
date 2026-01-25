@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { useState, useEffect } from 'react';
-import { Quote, Heart, X, ChevronDown } from 'lucide-react';
+import { Quote, Heart, X, ChevronDown, Share2 } from 'lucide-react';
 import { Navbar } from './Navbar';
 import { SEO } from './SEO';
 import heroLogo from '@/assets/Krishna.jpeg';
@@ -23,6 +23,7 @@ export function Poetry({}: PoetryProps) {
   const [likeCounts, setLikeCounts] = useState<number[]>([]);
   const [showAll, setShowAll] = useState(false);
   const [selectedPoem, setSelectedPoem] = useState<number | null>(null);
+  const [shareStatus, setShareStatus] = useState<string | null>(null);
 
   const toSlug = (title: string, index: number) => {
     const base = title
@@ -718,6 +719,39 @@ export function Poetry({}: PoetryProps) {
     window.history.replaceState({}, '', url.toString());
   };
 
+  const showShareStatus = (message: string) => {
+    setShareStatus(message);
+    setTimeout(() => setShareStatus(null), 2200);
+  };
+
+  const sharePoem = async (index: number) => {
+    if (typeof window === 'undefined') return;
+
+    const slug = toSlug(poems[index].title, index);
+    const url = new URL(window.location.href);
+    url.searchParams.set('poem', slug);
+    const shareUrl = url.toString();
+
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: poems[index].title,
+          text: 'Read this poem',
+          url: shareUrl
+        });
+        showShareStatus('Shared');
+      } else if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareUrl);
+        showShareStatus('Link copied');
+      } else {
+        showShareStatus('Copy not supported');
+      }
+    } catch (error) {
+      console.error('Share failed:', error);
+      showShareStatus('Share failed');
+    }
+  };
+
   const highlightedPoems = poems.slice(0, 6);
   const morePoems = poems.slice(6);
   const displayedPoems = showAll ? poems : highlightedPoems;
@@ -1022,26 +1056,42 @@ export function Poetry({}: PoetryProps) {
                         initial={{ opacity: 0, y: 12 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.4 }}
-                        className="flex justify-center"
+                        className="flex flex-col items-center gap-3"
                       >
-                        <motion.button
-                          whileHover={{ scale: 1.06 }}
-                          whileTap={{ scale: 0.94 }}
-                          onClick={() => toggleLike(selectedPoem)}
-                          className="flex items-center gap-3 px-6 py-3 bg-[rgb(var(--muted))] rounded-full border border-[rgb(var(--border))] hover:bg-[rgb(var(--foreground))] hover:text-[rgb(var(--background))] transition-all shadow-lg shadow-[rgba(0,0,0,0.12)]"
-                        >
-                          <Heart
-                            size={20}
-                            className={`transition-colors ${
-                              liked.includes(selectedPoem)
-                                ? 'fill-[rgb(var(--foreground))] text-[rgb(var(--foreground))]'
-                                : ''
-                            }`}
-                          />
-                          <span className="text-sm">
-                            {liked.includes(selectedPoem) ? 'Liked' : 'Like this poem'} - {likeCounts[selectedPoem] ?? 0}
-                          </span>
-                        </motion.button>
+                        <div className="flex flex-wrap justify-center gap-3">
+                          <motion.button
+                            whileHover={{ scale: 1.06 }}
+                            whileTap={{ scale: 0.94 }}
+                            onClick={() => toggleLike(selectedPoem)}
+                            className="flex items-center gap-3 px-6 py-3 bg-[rgb(var(--muted))] rounded-full border border-[rgb(var(--border))] hover:bg-[rgb(var(--foreground))] hover:text-[rgb(var(--background))] transition-all shadow-lg shadow-[rgba(0,0,0,0.12)]"
+                          >
+                            <Heart
+                              size={20}
+                              className={`transition-colors ${
+                                liked.includes(selectedPoem)
+                                  ? 'fill-[rgb(var(--foreground))] text-[rgb(var(--foreground))]'
+                                  : ''
+                              }`}
+                            />
+                            <span className="text-sm">
+                              {liked.includes(selectedPoem) ? 'Liked' : 'Like this poem'} - {likeCounts[selectedPoem] ?? 0}
+                            </span>
+                          </motion.button>
+
+                          <motion.button
+                            whileHover={{ scale: 1.06 }}
+                            whileTap={{ scale: 0.94 }}
+                            onClick={() => sharePoem(selectedPoem)}
+                            className="flex items-center gap-2 px-6 py-3 bg-[rgb(var(--background))] rounded-full border border-[rgb(var(--border))] hover:bg-[rgb(var(--muted))] transition-all shadow-lg shadow-[rgba(0,0,0,0.12)]"
+                          >
+                            <Share2 size={18} />
+                            <span className="text-sm">Share link</span>
+                          </motion.button>
+                        </div>
+
+                        {shareStatus && (
+                          <p className="text-xs text-[rgb(var(--muted-foreground))]">{shareStatus}</p>
+                        )}
                       </motion.div>
                     </div>
                   </motion.div>
