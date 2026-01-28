@@ -3,6 +3,7 @@ import { Moon, Sun, Menu, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import heroLogo from '@/assets/Krishna.jpeg';
+import { useHaptic } from '@/hooks/useHaptic';
 
 interface NavbarProps {
   darkMode: boolean;
@@ -13,6 +14,7 @@ export function Navbar({ darkMode, toggleDarkMode }: NavbarProps) {
   const navigate = useNavigate();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { triggerHaptic } = useHaptic();
 
   const navItems = ['About', 'Skills', 'Projects', 'Poetry', 'Contact'];
 
@@ -25,6 +27,7 @@ export function Navbar({ darkMode, toggleDarkMode }: NavbarProps) {
   }, []);
 
   const scrollToSection = (section: string) => {
+    triggerHaptic('selection');
     if (section === 'Poetry') {
       navigate('/poetry');
       setIsMobileMenuOpen(false);
@@ -64,9 +67,11 @@ export function Navbar({ darkMode, toggleDarkMode }: NavbarProps) {
             whileHover={{ scale: 1.05 }}
             className="cursor-pointer"
             onClick={() => {
+              triggerHaptic('light');
               navigate('/');
               setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 150);
             }}
+            onTouchStart={() => triggerHaptic('selection')}
           >
             <div className="flex items-center gap-2">
               <img
@@ -90,6 +95,7 @@ export function Navbar({ darkMode, toggleDarkMode }: NavbarProps) {
                 transition={{ delay: index * 0.1, duration: 0.3 }}
                 whileHover={{ y: -2, color: '#ff6b35' }}
                 onClick={() => scrollToSection(item)}
+                onTouchStart={() => triggerHaptic('selection')}
                 className="uppercase tracking-wider font-semibold text-sm"
                 style={{ fontFamily: '"Orbitron", sans-serif' }}
               >
@@ -99,7 +105,11 @@ export function Navbar({ darkMode, toggleDarkMode }: NavbarProps) {
             <motion.button
               whileHover={{ scale: 1.1, rotate: 180 }}
               whileTap={{ scale: 0.9 }}
-              onClick={toggleDarkMode}
+              onClick={() => {
+                toggleDarkMode();
+                triggerHaptic('medium');
+              }}
+              onTouchStart={() => triggerHaptic('selection')}
               className="p-2 rounded-none bg-[rgb(var(--foreground))] text-[rgb(var(--background))] hover:bg-[rgb(var(--secondary))] transition-colors"
             >
               {darkMode ? <Sun size={20} /> : <Moon size={20} />}
@@ -111,12 +121,22 @@ export function Navbar({ darkMode, toggleDarkMode }: NavbarProps) {
             <motion.button
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
-              onClick={toggleDarkMode}
+              onClick={() => {
+                toggleDarkMode();
+                triggerHaptic('medium');
+              }}
+              onTouchStart={() => triggerHaptic('selection')}
               className="p-2 rounded-none bg-[rgb(var(--foreground))] text-[rgb(var(--background))]"
             >
               {darkMode ? <Sun size={20} /> : <Moon size={20} />}
             </motion.button>
-            <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
+            <button 
+              onClick={() => {
+                setIsMobileMenuOpen(!isMobileMenuOpen);
+                triggerHaptic('light');
+              }}
+              onTouchStart={() => triggerHaptic('selection')}
+            >
               {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
           </div>
@@ -137,6 +157,7 @@ export function Navbar({ darkMode, toggleDarkMode }: NavbarProps) {
                 <button
                   key={item}
                   onClick={() => scrollToSection(item)}
+                  onTouchStart={() => triggerHaptic('selection')}
                   className="block w-full text-left px-4 py-2 hover:bg-[rgb(var(--muted))] hover:text-[#ff6b35] rounded-none transition-all duration-300 uppercase tracking-wider font-semibold"
                   style={{ fontFamily: '"Orbitron", sans-serif' }}
                 >

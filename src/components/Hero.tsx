@@ -1,6 +1,7 @@
 import { motion } from 'motion/react';
 import { ChevronDown, Mail, Github, Linkedin } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { useHaptic } from '@/hooks/useHaptic';
 
 interface HeroProps {
   heroImage: string;
@@ -21,6 +22,7 @@ export function Hero({ heroImage, hoverHeroImage }: HeroProps) {
   const [typingSpeed, setTypingSpeed] = useState(150);
   const [isImageExpanded, setIsImageExpanded] = useState(false);
   const [hoveredIcon, setHoveredIcon] = useState<string | null>(null);
+  const { triggerHaptic } = useHaptic();
 
   useEffect(() => {
     const currentTitle = titles[currentTitleIndex];
@@ -212,6 +214,8 @@ export function Hero({ heroImage, hoverHeroImage }: HeroProps) {
             whileTap={{ scale: 0.95 }}
             onMouseEnter={() => setHoveredIcon('email')}
             onMouseLeave={() => setHoveredIcon(null)}
+            onTouchStart={() => triggerHaptic('light')}
+            onClick={() => triggerHaptic('medium')}
             animate={{
               backgroundColor: hoveredIcon === 'email' ? 'rgba(255, 255, 255, 1)' : 'rgba(255, 255, 255, 0.1)'
             }}
@@ -234,6 +238,8 @@ export function Hero({ heroImage, hoverHeroImage }: HeroProps) {
             whileTap={{ scale: 0.95 }}
             onMouseEnter={() => setHoveredIcon('github')}
             onMouseLeave={() => setHoveredIcon(null)}
+            onTouchStart={() => triggerHaptic('light')}
+            onClick={() => triggerHaptic('medium')}
             animate={{
               backgroundColor: hoveredIcon === 'github' ? 'rgba(255, 255, 255, 1)' : 'rgba(255, 255, 255, 0.1)'
             }}
@@ -256,6 +262,8 @@ export function Hero({ heroImage, hoverHeroImage }: HeroProps) {
             whileTap={{ scale: 0.95 }}
             onMouseEnter={() => setHoveredIcon('linkedin')}
             onMouseLeave={() => setHoveredIcon(null)}
+            onTouchStart={() => triggerHaptic('light')}
+            onClick={() => triggerHaptic('medium')}
             animate={{
               backgroundColor: hoveredIcon === 'linkedin' ? 'rgba(255, 255, 255, 1)' : 'rgba(255, 255, 255, 0.1)'
             }}
@@ -282,7 +290,11 @@ export function Hero({ heroImage, hoverHeroImage }: HeroProps) {
           opacity: { delay: 1 },
           y: { duration: 2, repeat: Infinity }
         }}
-        onClick={scrollToAbout}
+        onClick={() => {
+          scrollToAbout();
+          triggerHaptic('light');
+        }}
+        onTouchStart={() => triggerHaptic('selection')}
         className="absolute bottom-8 left-1/2 transform -translate-x-1/2 bg-white/10 p-3 rounded-full hover:bg-white/20 transition-colors z-20 border border-white/20"
         aria-label="Scroll to about section"
       >

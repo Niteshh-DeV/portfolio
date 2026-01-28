@@ -7,6 +7,7 @@ import { SEO } from './SEO';
 import heroLogo from '@/assets/Krishna.jpeg';
 import { fetchLikes, incrementLike, decrementLike } from '@/utils/poetryApi';
 import { poems as poemsData } from '@/data/poems';
+import { useHaptic } from '@/hooks/useHaptic';
 
 interface PoetryProps {
   onClose?: () => void;
@@ -20,6 +21,7 @@ export function Poetry({}: PoetryProps) {
   const [shareStatus, setShareStatus] = useState<string | null>(null);
   const [isLoadingLikes, setIsLoadingLikes] = useState(true);
   const likeDebounceRef = useRef<Map<number, NodeJS.Timeout>>(new Map());
+  const { triggerHaptic } = useHaptic();
 
   const toSlug = (title: string, index: number) => {
     const base = title
@@ -306,7 +308,11 @@ export function Poetry({}: PoetryProps) {
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              onClick={openRandomPoem}
+              onClick={() => {
+                triggerHaptic('light');
+                openRandomPoem();
+              }}
+              onTouchStart={() => triggerHaptic('selection')}
               className="flex items-center gap-3 px-6 py-3 bg-[rgb(var(--muted))] rounded-full border border-[rgb(var(--border))] hover:bg-[rgb(var(--foreground))] hover:text-[rgb(var(--background))] transition-all shadow-md"
             >
               <Shuffle size={18} />
@@ -316,7 +322,11 @@ export function Poetry({}: PoetryProps) {
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              onClick={openTodaysPick}
+              onClick={() => {
+                triggerHaptic('light');
+                openTodaysPick();
+              }}
+              onTouchStart={() => triggerHaptic('selection')}
               className="flex items-center gap-3 px-6 py-3 bg-[rgb(var(--foreground))] text-[rgb(var(--background))] rounded-full border border-[rgb(var(--foreground))] hover:opacity-90 transition-all shadow-md"
             >
               <Sparkles size={18} />
@@ -359,7 +369,11 @@ export function Poetry({}: PoetryProps) {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.35, ease: [0.43, 0.13, 0.23, 0.96] }}
                     whileHover={{ scale: 1.15, zIndex: 10 }}
-                    onClick={() => openPoem(poemIndex)}
+                    onClick={() => {
+                      triggerHaptic('medium');
+                      openPoem(poemIndex);
+                    }}
+                    onTouchStart={() => triggerHaptic('light')}
                     className="relative group cursor-pointer z-0 hover:z-10 h-full"
                   >
                   <motion.div 
@@ -402,7 +416,12 @@ export function Poetry({}: PoetryProps) {
                     whileTap={{ scale: 0.95 }}
                     onClick={(e) => {
                       e.stopPropagation();
+                      triggerHaptic(liked.includes(poemIndex) ? 'light' : 'medium');
                       toggleLike(poemIndex);
+                    }}
+                    onTouchStart={(e) => {
+                      e.stopPropagation();
+                      triggerHaptic('selection');
                     }}
                     className="flex items-center gap-2 mt-auto"
                   >
@@ -436,7 +455,11 @@ export function Poetry({}: PoetryProps) {
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    onClick={() => setShowAll(true)}
+                    onClick={() => {
+                      triggerHaptic('light');
+                      setShowAll(true);
+                    }}
+                    onTouchStart={() => triggerHaptic('selection')}
                     className="px-8 py-3 bg-[rgb(var(--foreground))] text-[rgb(var(--background))] rounded-lg hover:bg-[rgb(var(--secondary))] transition-all flex items-center gap-2 mx-auto shadow-lg shadow-[rgba(0,0,0,0.08)]"
                   >
                     Read More Poems
@@ -450,7 +473,11 @@ export function Poetry({}: PoetryProps) {
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    onClick={() => setShowAll(false)}
+                    onClick={() => {
+                      triggerHaptic('light');
+                      setShowAll(false);
+                    }}
+                    onTouchStart={() => triggerHaptic('selection')}
                     className="px-8 py-3 bg-[rgb(var(--muted))] text-[rgb(var(--foreground))] rounded-lg border border-[rgb(var(--border))] hover:bg-[rgb(var(--foreground))] hover:text-[rgb(var(--background))] transition-all flex items-center gap-2 mx-auto shadow-lg shadow-[rgba(0,0,0,0.08)]"
                   >
                     Show Less
@@ -494,7 +521,11 @@ export function Poetry({}: PoetryProps) {
                         type="button"
                         whileHover={{ scale: 1.08, rotate: 90 }}
                         whileTap={{ scale: 0.92 }}
-                        onClick={closePoem}
+                        onClick={() => {
+                          triggerHaptic('medium');
+                          closePoem();
+                        }}
+                        onTouchStart={() => triggerHaptic('light')}
                         className="absolute top-4 right-4 md:top-5 md:right-5 z-20 p-2 bg-[rgb(var(--foreground))] text-[rgb(var(--background))] rounded-full hover:bg-[rgb(var(--secondary))] transition-colors"
                       >
                         <X size={20} />
@@ -541,7 +572,11 @@ export function Poetry({}: PoetryProps) {
                           <motion.button
                             whileHover={{ scale: 1.06 }}
                             whileTap={{ scale: 0.94 }}
-                            onClick={() => toggleLike(selectedPoem)}
+                            onClick={() => {
+                              triggerHaptic(liked.includes(selectedPoem) ? 'light' : 'medium');
+                              toggleLike(selectedPoem);
+                            }}
+                            onTouchStart={() => triggerHaptic('selection')}
                             className="flex items-center gap-3 px-6 py-3 bg-[rgb(var(--muted))] rounded-full border border-[rgb(var(--border))] hover:bg-[rgb(var(--foreground))] hover:text-[rgb(var(--background))] transition-all shadow-lg shadow-[rgba(0,0,0,0.12)]"
                           >
                             <Heart
@@ -560,7 +595,11 @@ export function Poetry({}: PoetryProps) {
                           <motion.button
                             whileHover={{ scale: 1.06 }}
                             whileTap={{ scale: 0.94 }}
-                            onClick={() => sharePoem(selectedPoem)}
+                            onClick={() => {
+                              triggerHaptic('medium');
+                              sharePoem(selectedPoem);
+                            }}
+                            onTouchStart={() => triggerHaptic('light')}
                             className="flex items-center gap-2 px-6 py-3 bg-[rgb(var(--background))] rounded-full border border-[rgb(var(--border))] hover:bg-[rgb(var(--muted))] transition-all shadow-lg shadow-[rgba(0,0,0,0.12)]"
                           >
                             <Share2 size={18} />

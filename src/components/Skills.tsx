@@ -1,10 +1,12 @@
 import { motion } from 'motion/react';
 import { useInView } from 'motion/react';
 import { useRef } from 'react';
+import { useHaptic } from '@/hooks/useHaptic';
 
 export function Skills() {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-100px" });
+  const { triggerHaptic } = useHaptic();
 
   const skillCategories = [
     {
@@ -55,7 +57,10 @@ export function Skills() {
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={isInView ? { opacity: 1, scale: 1 } : {}}
                     transition={{ duration: 0.3, delay: catIndex * 0.1 + skillIndex * 0.05 }}
-                    className="px-3 py-2 bg-[rgb(var(--muted))] rounded-md border border-[rgb(var(--border))] hover:bg-[rgb(var(--foreground))] hover:text-[rgb(var(--background))] transition-all duration-200 whitespace-nowrap"
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.95 }}
+                    onTouchStart={() => triggerHaptic('selection')}
+                    className="px-3 py-2 bg-[rgb(var(--muted))] rounded-md border border-[rgb(var(--border))] hover:bg-[rgb(var(--foreground))] hover:text-[rgb(var(--background))] transition-all duration-200 whitespace-nowrap cursor-pointer"
                   >
                     <span className="text-sm font-medium">{skill}</span>
                   </motion.div>

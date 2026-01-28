@@ -2,6 +2,7 @@ import { motion } from 'motion/react';
 import { useInView } from 'motion/react';
 import { useRef, useState } from 'react';
 import { Mail, Github, Linkedin, Twitter, Instagram, Facebook, Send } from 'lucide-react';
+import { useHaptic } from '@/hooks/useHaptic';
 
 export function Contact() {
   const ref = useRef(null);
@@ -12,6 +13,7 @@ export function Contact() {
     message: ''
   });
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
+  const { triggerHaptic } = useHaptic();
 
   const socialLinks = [
     {
@@ -55,6 +57,7 @@ export function Contact() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setStatus('submitting');
+    triggerHaptic('medium');
     
     try {
       const response = await fetch('https://formspree.io/f/xanykyay', {
@@ -67,14 +70,17 @@ export function Contact() {
 
       if (response.ok) {
         setStatus('success');
+        triggerHaptic('success');
         setFormData({ name: '', email: '', message: '' });
         setTimeout(() => setStatus('idle'), 5000);
       } else {
         setStatus('error');
+        triggerHaptic('error');
         setTimeout(() => setStatus('idle'), 5000);
       }
     } catch (error) {
       setStatus('error');
+      triggerHaptic('error');
       setTimeout(() => setStatus('idle'), 5000);
     }
   };
@@ -124,6 +130,7 @@ export function Contact() {
                   name="name"
                   value={formData.name}
                   onChange={handleChange}
+                  onFocus={() => triggerHaptic('selection')}
                   required
                   className="w-full px-4 py-3 bg-[rgb(var(--muted))] border border-[rgb(var(--border))] rounded-lg focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary))] transition-all"
                   placeholder="Name"
@@ -141,6 +148,7 @@ export function Contact() {
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
+                  onFocus={() => triggerHaptic('selection')}
                   required
                   className="w-full px-4 py-3 bg-[rgb(var(--muted))] border border-[rgb(var(--border))] rounded-lg focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary))] transition-all"
                   placeholder="name@example.com"
@@ -157,6 +165,7 @@ export function Contact() {
                   name="message"
                   value={formData.message}
                   onChange={handleChange}
+                  onFocus={() => triggerHaptic('selection')}
                   required
                   rows={5}
                   className="w-full px-4 py-3 bg-[rgb(var(--muted))] border border-[rgb(var(--border))] rounded-lg focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary))] transition-all resize-none"
@@ -169,6 +178,7 @@ export function Contact() {
                 whileTap={{ scale: 0.95 }}
                 type="submit"
                 disabled={status === 'submitting'}
+                onTouchStart={() => triggerHaptic('light')}
                 className="w-full px-8 py-3 bg-[rgb(var(--primary))] text-black rounded-full hover:bg-[rgb(var(--primary))]/90 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {status === 'submitting' ? 'Sending...' : status === 'success' ? 'Message Sent!' : 'Send Message'}
@@ -205,6 +215,8 @@ export function Contact() {
                     animate={isInView ? { opacity: 1, y: 0 } : {}}
                     transition={{ duration: 0.6, delay: 0.6 + index * 0.1 }}
                     whileHover={{ scale: 1.05, y: -5 }}
+                    onClick={() => triggerHaptic('light')}
+                    onTouchStart={() => triggerHaptic('selection')}
                     className={`flex flex-col items-center justify-center p-6 glass-effect rounded-xl ${social.color} transition-all group`}
                   >
                     <motion.div

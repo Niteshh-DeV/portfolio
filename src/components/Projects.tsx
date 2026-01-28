@@ -2,6 +2,7 @@ import { motion } from 'motion/react';
 import { useInView } from 'motion/react';
 import { useRef, useState } from 'react';
 import { ExternalLink, Github } from 'lucide-react';
+import { useHaptic } from '@/hooks/useHaptic';
 
 const project1Img = new URL('../assets/projectImage/p1.png', import.meta.url).href;
 const project2Img = new URL('../assets/projectImage/p2.png', import.meta.url).href;
@@ -11,6 +12,7 @@ export function Projects() {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-100px" });
   const [hoveredProject, setHoveredProject] = useState<number | null>(null);
+  const { triggerHaptic } = useHaptic();
 
   const projects = [
     {
@@ -76,8 +78,12 @@ export function Projects() {
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.6, delay: index * 0.1 }}
               whileHover={{ y: -10 }}
-              onHoverStart={() => setHoveredProject(index)}
+              onHoverStart={() => {
+                setHoveredProject(index);
+                triggerHaptic('light');
+              }}
               onHoverEnd={() => setHoveredProject(null)}
+              onTouchStart={() => triggerHaptic('selection')}
               className="glass-effect rounded-lg overflow-hidden cursor-pointer group border-2 border-[rgb(var(--border))] hover:border-[rgb(var(--foreground))] transition-all"
             >
               <div className="h-48 relative border-b-2 border-[rgb(var(--border))] overflow-hidden bg-[rgb(var(--muted))]">
@@ -99,6 +105,8 @@ export function Projects() {
                       <a href={project.github} target="_blank" rel="noopener noreferrer">
                         <motion.button
                           whileHover={{ scale: 1.1 }}
+                          onClick={() => triggerHaptic('medium')}
+                          onTouchStart={() => triggerHaptic('light')}
                           className="p-3 bg-[rgb(var(--foreground))] text-[rgb(var(--background))] rounded-lg hover:bg-[rgb(var(--secondary))] transition-colors"
                         >
                           <Github size={20} />
@@ -109,6 +117,8 @@ export function Projects() {
                       <a href={project.live} target="_blank" rel="noopener noreferrer">
                         <motion.button
                           whileHover={{ scale: 1.1 }}
+                          onClick={() => triggerHaptic('medium')}
+                          onTouchStart={() => triggerHaptic('light')}
                           className="p-3 bg-[rgb(var(--foreground))] text-[rgb(var(--background))] rounded-lg hover:bg-[rgb(var(--secondary))] transition-colors"
                         >
                           <ExternalLink size={20} />
