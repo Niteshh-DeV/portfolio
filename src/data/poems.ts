@@ -548,6 +548,43 @@ export const poems: Poem[] = [
       'radial-gradient(circle at 20% 30%, rgba(59, 130, 246, 0.12) 0%, transparent 45%), radial-gradient(circle at 75% 70%, rgba(139, 92, 246, 0.1) 0%, transparent 45%)'
   },
   {
+    title: 'Year',
+    lines: [
+      'Its new year and',
+      'Like every day it came as usual',
+      'It didn\'t bring something new',
+      'Except the hopes that came casual',
+      'And',
+      'With the possibilities that',
+      'We have to do manual',
+      '',
+      'Its new year and',
+      'I wished her just when it started',
+      'Its new year and',
+      'I wished her to talk to me',
+      'Its new year and',
+      'I wished her to look back to me',
+      'Like before how we were',
+      'Its new year and',
+      'I wished for her',
+      'And for us',
+      'But i think my wishes never reach her',
+      'I think My wishes never touch her',
+      '',
+      'Its New year and',
+      'Nothing is new',
+      'Except the things that remains due',
+      'Except the calendars view',
+      'Like how',
+      'We wished for something',
+      'That always remains in queue.',
+      '❤️'
+    ],
+    date: '4th March 2024',
+    pattern:
+      'radial-gradient(circle at 40% 45%, rgba(255, 255, 255, 0.09) 0%, transparent 45%), radial-gradient(circle at 70% 70%, rgba(59, 130, 246, 0.08) 0%, transparent 45%)'
+  },
+  {
     title: 'Untitled',
     lines: [
       "It's always one sided ,",
