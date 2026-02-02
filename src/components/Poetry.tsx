@@ -14,13 +14,13 @@ interface PoetryProps {
 }
 export function Poetry({}: PoetryProps) {
   const [darkMode, setDarkMode] = useState(true);
-  const [liked, setLiked] = useState<number[]>([]);
+  const [liked, setLiked] = useState<string[]>([]);
   const [likeCounts, setLikeCounts] = useState<number[]>([]);
   const [showAll, setShowAll] = useState(false);
   const [selectedPoem, setSelectedPoem] = useState<number | null>(null);
   const [shareStatus, setShareStatus] = useState<string | null>(null);
   const [isLoadingLikes, setIsLoadingLikes] = useState(true);
-  const likeDebounceRef = useRef<Map<number, NodeJS.Timeout>>(new Map());
+  const likeDebounceRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
   const { triggerHaptic } = useHaptic();
 
   const toSlug = (title: string, index: number) => {
@@ -30,6 +30,21 @@ export function Poetry({}: PoetryProps) {
       .replace(/(^-|-$)/g, '') || 'poem';
     return `${base}-${index + 1}`;
   };
+
+  const toLikeId = (title: string, date: string) => {
+    const base = `${title}-${date}`
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '') || 'poem';
+    return base;
+  };
+
+  const poems = useMemo(() => poemsData, []);
+
+  const getPoemIdByIndex = useCallback(
+    (index: number) => toLikeId(poems[index].title, poems[index].date),
+    [poems]
+  );
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme');
@@ -56,20 +71,40 @@ export function Poetry({}: PoetryProps) {
     }
   };
 
-  const poems = useMemo(() => poemsData, []);
-
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
     // Load user's liked poems from localStorage (client-side preference)
     const storedLiked = localStorage.getItem('poetry-liked');
-    setLiked(storedLiked ? JSON.parse(storedLiked) : []);
+    if (storedLiked) {
+      try {
+        const parsed = JSON.parse(storedLiked);
+        if (Array.isArray(parsed)) {
+          const normalized = parsed
+            .map((item) => {
+              if (typeof item === 'string') return item;
+              if (typeof item === 'number' && poems[item]) {
+                return getPoemIdByIndex(item);
+              }
+              return null;
+            })
+            .filter((item): item is string => Boolean(item));
+          setLiked(Array.from(new Set(normalized)));
+        } else {
+          setLiked([]);
+        }
+      } catch {
+        setLiked([]);
+      }
+    } else {
+      setLiked([]);
+    }
 
     // Fetch like counts from backend API
     const loadLikes = async () => {
       try {
         const likesData = await fetchLikes();
-        const normalizedCounts = poems.map((_, idx) => likesData[idx] ?? 0);
+        const normalizedCounts = poems.map((poem) => likesData[toLikeId(poem.title, poem.date)] ?? 0);
         setLikeCounts(normalizedCounts);
       } catch (error) {
         console.error('Failed to load likes:', error);
@@ -82,7 +117,7 @@ export function Poetry({}: PoetryProps) {
     };
 
     loadLikes();
-  }, []);
+  }, [poems]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -177,18 +212,19 @@ export function Poetry({}: PoetryProps) {
   const displayedPoems = showAll ? poems : highlightedPoems;
 
   const toggleLike = useCallback(async (index: number) => {
+    const poemId = getPoemIdByIndex(index);
     // Clear any pending debounce for this poem
-    const existingTimeout = likeDebounceRef.current.get(index);
+    const existingTimeout = likeDebounceRef.current.get(poemId);
     if (existingTimeout) {
       clearTimeout(existingTimeout);
-      likeDebounceRef.current.delete(index);
+      likeDebounceRef.current.delete(poemId);
     }
 
-    const alreadyLiked = liked.includes(index);
+    const alreadyLiked = liked.includes(poemId);
     
     // Optimistically update UI
     setLiked(prev => {
-      return alreadyLiked ? prev.filter(i => i !== index) : [...prev, index];
+      return alreadyLiked ? prev.filter(id => id !== poemId) : [...prev, poemId];
     });
 
     setLikeCounts(prevCounts => {
@@ -202,14 +238,14 @@ export function Poetry({}: PoetryProps) {
     const timeout = setTimeout(async () => {
       try {
         if (alreadyLiked) {
-          const newCount = await decrementLike(index);
+          const newCount = await decrementLike(poemId);
           setLikeCounts(prevCounts => {
             const updated = [...prevCounts];
             updated[index] = newCount;
             return updated;
           });
         } else {
-          const newCount = await incrementLike(index);
+          const newCount = await incrementLike(poemId);
           setLikeCounts(prevCounts => {
             const updated = [...prevCounts];
             updated[index] = newCount;
@@ -221,7 +257,7 @@ export function Poetry({}: PoetryProps) {
         toast.error('Failed to update like. Please check your connection.');
         // Revert optimistic update on error
         setLiked(prev => {
-          return alreadyLiked ? [...prev, index] : prev.filter(i => i !== index);
+          return alreadyLiked ? [...prev, poemId] : prev.filter(id => id !== poemId);
         });
         setLikeCounts(prevCounts => {
           const nextCounts = [...prevCounts];
@@ -230,12 +266,12 @@ export function Poetry({}: PoetryProps) {
           return nextCounts;
         });
       } finally {
-        likeDebounceRef.current.delete(index);
+        likeDebounceRef.current.delete(poemId);
       }
     }, 300);
 
-    likeDebounceRef.current.set(index, timeout);
-  }, [liked, poems]);
+    likeDebounceRef.current.set(poemId, timeout);
+  }, [liked, poems, getPoemIdByIndex]);
 
   const getSnippet = (lines: string[]) => {
     return lines.filter(line => line !== '').slice(0, 3);
@@ -359,6 +395,7 @@ export function Poetry({}: PoetryProps) {
             ) : (
             displayedPoems.map((poem, poemIndex) => {
                 const likeCount = likeCounts[poemIndex] ?? 0;
+                const poemId = getPoemIdByIndex(poemIndex);
                 const slug = toSlug(poem.title, poemIndex);
 
                 return (
@@ -416,7 +453,7 @@ export function Poetry({}: PoetryProps) {
                     whileTap={{ scale: 0.95 }}
                     onClick={(e) => {
                       e.stopPropagation();
-                      triggerHaptic(liked.includes(poemIndex) ? 'light' : 'medium');
+                      triggerHaptic(liked.includes(poemId) ? 'light' : 'medium');
                       toggleLike(poemIndex);
                     }}
                     onTouchStart={(e) => {
@@ -428,13 +465,13 @@ export function Poetry({}: PoetryProps) {
                     <Heart
                       size={18}
                       className={`transition-colors ${
-                        liked.includes(poemIndex)
+                        liked.includes(poemId)
                           ? 'fill-[rgb(var(--foreground))] text-[rgb(var(--foreground))]'
                           : 'text-[rgb(var(--muted-foreground))]'
                       }`}
                     />
                     <span className="text-xs text-[rgb(var(--muted-foreground))]">
-                      {liked.includes(poemIndex) ? 'Liked' : 'Like'} - {likeCount}
+                      {liked.includes(poemId) ? 'Liked' : 'Like'} - {likeCount}
                     </span>
                   </motion.button>
                   </motion.div>
@@ -573,7 +610,8 @@ export function Poetry({}: PoetryProps) {
                             whileHover={{ scale: 1.06 }}
                             whileTap={{ scale: 0.94 }}
                             onClick={() => {
-                              triggerHaptic(liked.includes(selectedPoem) ? 'light' : 'medium');
+                              const poemId = getPoemIdByIndex(selectedPoem);
+                              triggerHaptic(liked.includes(poemId) ? 'light' : 'medium');
                               toggleLike(selectedPoem);
                             }}
                             onTouchStart={() => triggerHaptic('selection')}
@@ -582,13 +620,13 @@ export function Poetry({}: PoetryProps) {
                             <Heart
                               size={20}
                               className={`transition-colors ${
-                                liked.includes(selectedPoem)
+                                liked.includes(getPoemIdByIndex(selectedPoem))
                                   ? 'fill-[rgb(var(--foreground))] text-[rgb(var(--foreground))]'
                                   : ''
                               }`}
                             />
                             <span className="text-sm">
-                              {liked.includes(selectedPoem) ? 'Liked' : 'Like this poem'} - {likeCounts[selectedPoem] ?? 0}
+                              {liked.includes(getPoemIdByIndex(selectedPoem)) ? 'Liked' : 'Like this poem'} - {likeCounts[selectedPoem] ?? 0}
                             </span>
                           </motion.button>
 

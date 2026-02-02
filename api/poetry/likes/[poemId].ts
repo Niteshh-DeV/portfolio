@@ -39,14 +39,25 @@ if (redisUrl && redisToken) {
 
 const LIKES_KEY = 'poetry:likes';
 
+// Import poems to derive stable IDs for migration
+const { poems } = require('../../../src/data/poems');
+
+const toLikeId = (title: string, date: string) => {
+  const base = `${title}-${date}`
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '') || 'poem';
+  return base;
+};
+
 // Read likes from Redis
-const readLikes = async (): Promise<Record<number, number>> => {
+const readLikes = async (): Promise<Record<string, number>> => {
   if (!redis) {
     throw new Error('Redis client not initialized');
   }
   try {
     const data = await redis.get(LIKES_KEY);
-    return (data as Record<number, number>) || {};
+    return (data as Record<string, number>) || {};
   } catch (error) {
     console.error('Error reading likes from Redis:', error);
     throw error;
@@ -54,7 +65,7 @@ const readLikes = async (): Promise<Record<number, number>> => {
 };
 
 // Write likes to Redis
-const writeLikes = async (likes: Record<number, number>) => {
+const writeLikes = async (likes: Record<string, number>) => {
   if (!redis) {
     throw new Error('Redis client not initialized');
   }
@@ -64,6 +75,25 @@ const writeLikes = async (likes: Record<number, number>) => {
     console.error('Error writing likes to Redis:', error);
     throw error;
   }
+};
+
+const migrateLikes = (likes: Record<string, number>) => {
+  let migrated = false;
+  const nextLikes: Record<string, number> = { ...likes };
+
+  Object.keys(likes).forEach((key) => {
+    if (!/^\d+$/.test(key)) return;
+    const index = Number(key);
+    const poem = poems?.[index];
+    if (!poem) return;
+    const newId = toLikeId(poem.title, poem.date);
+    const existing = nextLikes[newId] ?? 0;
+    nextLikes[newId] = Math.max(existing, likes[key] ?? 0);
+    delete nextLikes[key];
+    migrated = true;
+  });
+
+  return { likes: nextLikes, migrated };
 };
 
 module.exports = async function handler(
@@ -88,12 +118,12 @@ module.exports = async function handler(
   console.log('Request method:', req.method);
   console.log('Request query:', req.query);
 
-  const { poemId } = req.query;
-  const poemIndex = parseInt(poemId as string, 10);
+  const poemIdRaw = Array.isArray(req.query.poemId) ? req.query.poemId[0] : req.query.poemId;
+  const poemId = typeof poemIdRaw === 'string' ? poemIdRaw : '';
 
-  if (isNaN(poemIndex)) {
-    console.error('Invalid poem ID:', poemId);
-    res.status(400).json({ error: 'Invalid poem ID', received: poemId });
+  if (!poemId) {
+    console.error('Invalid poem ID:', req.query.poemId);
+    res.status(400).json({ error: 'Invalid poem ID', received: req.query.poemId });
     return;
   }
 
@@ -115,20 +145,25 @@ module.exports = async function handler(
 
   try {
     const likes = await readLikes();
-    const currentCount = likes[poemIndex] || 0;
+    const { likes: migratedLikes, migrated } = migrateLikes(likes);
+    const likesStore = migrated ? migratedLikes : likes;
+    if (migrated) {
+      await writeLikes(migratedLikes);
+    }
+    const currentCount = likesStore[poemId] || 0;
 
     if (req.method === 'POST' || req.method === 'post') {
       // Increment like count
-      console.log(`Incrementing like for poem ${poemIndex}`);
-      likes[poemIndex] = currentCount + 1;
-      await writeLikes(likes);
-      res.status(200).json({ poemId: poemIndex, count: likes[poemIndex] });
+      console.log(`Incrementing like for poem ${poemId}`);
+      likesStore[poemId] = currentCount + 1;
+      await writeLikes(likesStore);
+      res.status(200).json({ poemId, count: likesStore[poemId] });
     } else if (req.method === 'DELETE' || req.method === 'delete') {
       // Decrement like count (minimum 0)
-      console.log(`Decrementing like for poem ${poemIndex}`);
-      likes[poemIndex] = Math.max(0, currentCount - 1);
-      await writeLikes(likes);
-      res.status(200).json({ poemId: poemIndex, count: likes[poemIndex] });
+      console.log(`Decrementing like for poem ${poemId}`);
+      likesStore[poemId] = Math.max(0, currentCount - 1);
+      await writeLikes(likesStore);
+      res.status(200).json({ poemId, count: likesStore[poemId] });
     } else {
       console.error('Method not allowed:', req.method);
       res.status(405).json({ 

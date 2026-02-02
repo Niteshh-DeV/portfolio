@@ -2,7 +2,7 @@
 const API_BASE_URL = '/api';
 
 export interface PoetryLikes {
-  [poemId: number]: number;
+  [poemId: string]: number;
 }
 
 /**
@@ -25,7 +25,7 @@ export async function fetchLikes(): Promise<PoetryLikes> {
 /**
  * Increment like count for a specific poem
  */
-export async function incrementLike(poemId: number): Promise<number> {
+export async function incrementLike(poemId: string): Promise<number> {
   try {
     const response = await fetch(`${API_BASE_URL}/poetry/likes/${poemId}`, {
       method: 'POST',
@@ -49,7 +49,7 @@ export async function incrementLike(poemId: number): Promise<number> {
 /**
  * Decrement like count for a specific poem
  */
-export async function decrementLike(poemId: number): Promise<number> {
+export async function decrementLike(poemId: string): Promise<number> {
   try {
     const response = await fetch(`${API_BASE_URL}/poetry/likes/${poemId}`, {
       method: 'DELETE',

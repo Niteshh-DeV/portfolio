@@ -39,18 +39,60 @@ if (redisUrl && redisToken) {
 
 const LIKES_KEY = 'poetry:likes';
 
+// Import poems to derive stable IDs for migration
+const { poems } = require('../../src/data/poems');
+
+const toLikeId = (title: string, date: string) => {
+  const base = `${title}-${date}`
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '') || 'poem';
+  return base;
+};
+
 // Read likes from Redis
-const readLikes = async (): Promise<Record<number, number>> => {
+const readLikes = async (): Promise<Record<string, number>> => {
   if (!redis) {
     throw new Error('Redis client not initialized');
   }
   try {
     const data = await redis.get(LIKES_KEY);
-    return (data as Record<number, number>) || {};
+    return (data as Record<string, number>) || {};
   } catch (error) {
     console.error('Error reading likes from Redis:', error);
     throw error;
   }
+};
+
+const writeLikes = async (likes: Record<string, number>) => {
+  if (!redis) {
+    throw new Error('Redis client not initialized');
+  }
+  try {
+    await redis.set(LIKES_KEY, likes);
+  } catch (error) {
+    console.error('Error writing likes to Redis:', error);
+    throw error;
+  }
+};
+
+const migrateLikes = (likes: Record<string, number>) => {
+  let migrated = false;
+  const nextLikes: Record<string, number> = { ...likes };
+
+  Object.keys(likes).forEach((key) => {
+    if (!/^\d+$/.test(key)) return;
+    const index = Number(key);
+    const poem = poems?.[index];
+    if (!poem) return;
+    const newId = toLikeId(poem.title, poem.date);
+    const existing = nextLikes[newId] ?? 0;
+    nextLikes[newId] = Math.max(existing, likes[key] ?? 0);
+    delete nextLikes[key];
+    migrated = true;
+  });
+
+  return { likes: nextLikes, migrated };
 };
 
 module.exports = async function handler(
@@ -91,8 +133,12 @@ module.exports = async function handler(
       }
       console.log('Fetching likes from Redis...');
       const likes = await readLikes();
-      console.log('Likes fetched:', likes);
-      res.status(200).json(likes);
+      const { likes: migratedLikes, migrated } = migrateLikes(likes);
+      if (migrated) {
+        await writeLikes(migratedLikes);
+      }
+      console.log('Likes fetched:', migratedLikes);
+      res.status(200).json(migratedLikes);
     } catch (error) {
       console.error('Error fetching likes:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
