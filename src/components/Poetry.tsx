@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { Navbar } from './Navbar';
 import { SEO } from './SEO';
 import heroLogo from '@/assets/Krishna.jpeg';
-import { fetchLikes, incrementLike, decrementLike } from '@/utils/poetryApi';
+import { fetchLikes, incrementLike, decrementLike, migrateLikes } from '@/utils/poetryApi';
 import { poems as poemsData } from '@/data/poems';
 import { useHaptic } from '@/hooks/useHaptic';
 
@@ -104,8 +104,36 @@ export function Poetry({}: PoetryProps) {
     const loadLikes = async () => {
       try {
         const likesData = await fetchLikes();
-        const normalizedCounts = poems.map((poem) => likesData[toLikeId(poem.title, poem.date)] ?? 0);
-        setLikeCounts(normalizedCounts);
+        const numericKeys = Object.keys(likesData).filter((key) => /^\d+$/.test(key));
+
+        if (numericKeys.length) {
+          const migrationMap: Record<string, number> = {};
+          numericKeys.forEach((key) => {
+            const index = Number(key);
+            if (!poems[index]) return;
+            const poemId = getPoemIdByIndex(index);
+            const count = likesData[key] ?? 0;
+            const existing = migrationMap[poemId] ?? 0;
+            migrationMap[poemId] = Math.max(existing, count);
+          });
+
+          try {
+            await migrateLikes(migrationMap, numericKeys);
+          } catch (error) {
+            console.error('Failed to migrate likes:', error);
+          }
+
+          const refreshed = await fetchLikes();
+          const normalizedCounts = poems.map(
+            (poem) => refreshed[toLikeId(poem.title, poem.date)] ?? 0
+          );
+          setLikeCounts(normalizedCounts);
+        } else {
+          const normalizedCounts = poems.map(
+            (poem) => likesData[toLikeId(poem.title, poem.date)] ?? 0
+          );
+          setLikeCounts(normalizedCounts);
+        }
       } catch (error) {
         console.error('Failed to load likes:', error);
         toast.error('Failed to load likes. Please refresh the page.');

@@ -70,3 +70,30 @@ export async function decrementLike(poemId: string): Promise<number> {
   }
 }
 
+/**
+ * Migrate/merge likes (used to move index-based keys to stable IDs)
+ */
+export async function migrateLikes(
+  likes: Record<string, number>,
+  removeKeys: string[] = []
+): Promise<PoetryLikes> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/poetry/likes`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ likes, removeKeys }),
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error('API Error:', response.status, errorData);
+      throw new Error(errorData.error || `Failed to migrate likes: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Error migrating likes:', error);
+    throw error;
+  }
+}
+

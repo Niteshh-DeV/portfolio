@@ -39,17 +39,6 @@ if (redisUrl && redisToken) {
 
 const LIKES_KEY = 'poetry:likes';
 
-// Import poems to derive stable IDs for migration
-const { poems } = require('../../src/data/poems');
-
-const toLikeId = (title: string, date: string) => {
-  const base = `${title}-${date}`
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)/g, '') || 'poem';
-  return base;
-};
-
 // Read likes from Redis
 const readLikes = async (): Promise<Record<string, number>> => {
   if (!redis) {
@@ -64,6 +53,7 @@ const readLikes = async (): Promise<Record<string, number>> => {
   }
 };
 
+// Write likes to Redis
 const writeLikes = async (likes: Record<string, number>) => {
   if (!redis) {
     throw new Error('Redis client not initialized');
@@ -74,25 +64,6 @@ const writeLikes = async (likes: Record<string, number>) => {
     console.error('Error writing likes to Redis:', error);
     throw error;
   }
-};
-
-const migrateLikes = (likes: Record<string, number>) => {
-  let migrated = false;
-  const nextLikes: Record<string, number> = { ...likes };
-
-  Object.keys(likes).forEach((key) => {
-    if (!/^\d+$/.test(key)) return;
-    const index = Number(key);
-    const poem = poems?.[index];
-    if (!poem) return;
-    const newId = toLikeId(poem.title, poem.date);
-    const existing = nextLikes[newId] ?? 0;
-    nextLikes[newId] = Math.max(existing, likes[key] ?? 0);
-    delete nextLikes[key];
-    migrated = true;
-  });
-
-  return { likes: nextLikes, migrated };
 };
 
 module.exports = async function handler(
@@ -133,12 +104,8 @@ module.exports = async function handler(
       }
       console.log('Fetching likes from Redis...');
       const likes = await readLikes();
-      const { likes: migratedLikes, migrated } = migrateLikes(likes);
-      if (migrated) {
-        await writeLikes(migratedLikes);
-      }
-      console.log('Likes fetched:', migratedLikes);
-      res.status(200).json(migratedLikes);
+      console.log('Likes fetched:', likes);
+      res.status(200).json(likes);
     } catch (error) {
       console.error('Error fetching likes:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -153,12 +120,43 @@ module.exports = async function handler(
         ...errorDetails
       });
     }
+  } else if (req.method === 'POST' || req.method === 'post') {
+    try {
+      const payload = req.body || {};
+      const incomingLikes = payload.likes || {};
+      const removeKeys: string[] = Array.isArray(payload.removeKeys) ? payload.removeKeys : [];
+
+      if (typeof incomingLikes !== 'object' || Array.isArray(incomingLikes)) {
+        return res.status(400).json({ error: 'Invalid likes payload' });
+      }
+
+      const existingLikes = await readLikes();
+      const mergedLikes: Record<string, number> = { ...existingLikes };
+
+      Object.keys(incomingLikes).forEach((key) => {
+        const value = Number(incomingLikes[key]);
+        if (Number.isNaN(value)) return;
+        const current = mergedLikes[key] ?? 0;
+        mergedLikes[key] = Math.max(current, value);
+      });
+
+      removeKeys.forEach((key) => {
+        delete mergedLikes[key];
+      });
+
+      await writeLikes(mergedLikes);
+      res.status(200).json(mergedLikes);
+    } catch (error) {
+      console.error('Error merging likes:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      res.status(500).json({ error: 'Failed to merge likes', details: errorMessage });
+    }
   } else {
     console.error('Method not allowed:', req.method);
     res.status(405).json({ 
       error: 'Method not allowed',
       received: req.method,
-      allowed: ['GET']
+      allowed: ['GET', 'POST']
     });
   }
 }

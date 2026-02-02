@@ -39,16 +39,6 @@ if (redisUrl && redisToken) {
 
 const LIKES_KEY = 'poetry:likes';
 
-// Import poems to derive stable IDs for migration
-const { poems } = require('../../../src/data/poems');
-
-const toLikeId = (title: string, date: string) => {
-  const base = `${title}-${date}`
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)/g, '') || 'poem';
-  return base;
-};
 
 // Read likes from Redis
 const readLikes = async (): Promise<Record<string, number>> => {
@@ -77,24 +67,6 @@ const writeLikes = async (likes: Record<string, number>) => {
   }
 };
 
-const migrateLikes = (likes: Record<string, number>) => {
-  let migrated = false;
-  const nextLikes: Record<string, number> = { ...likes };
-
-  Object.keys(likes).forEach((key) => {
-    if (!/^\d+$/.test(key)) return;
-    const index = Number(key);
-    const poem = poems?.[index];
-    if (!poem) return;
-    const newId = toLikeId(poem.title, poem.date);
-    const existing = nextLikes[newId] ?? 0;
-    nextLikes[newId] = Math.max(existing, likes[key] ?? 0);
-    delete nextLikes[key];
-    migrated = true;
-  });
-
-  return { likes: nextLikes, migrated };
-};
 
 module.exports = async function handler(
   req: VercelRequest,
@@ -145,25 +117,20 @@ module.exports = async function handler(
 
   try {
     const likes = await readLikes();
-    const { likes: migratedLikes, migrated } = migrateLikes(likes);
-    const likesStore = migrated ? migratedLikes : likes;
-    if (migrated) {
-      await writeLikes(migratedLikes);
-    }
-    const currentCount = likesStore[poemId] || 0;
+    const currentCount = likes[poemId] || 0;
 
     if (req.method === 'POST' || req.method === 'post') {
       // Increment like count
       console.log(`Incrementing like for poem ${poemId}`);
-      likesStore[poemId] = currentCount + 1;
-      await writeLikes(likesStore);
-      res.status(200).json({ poemId, count: likesStore[poemId] });
+      likes[poemId] = currentCount + 1;
+      await writeLikes(likes);
+      res.status(200).json({ poemId, count: likes[poemId] });
     } else if (req.method === 'DELETE' || req.method === 'delete') {
       // Decrement like count (minimum 0)
       console.log(`Decrementing like for poem ${poemId}`);
-      likesStore[poemId] = Math.max(0, currentCount - 1);
-      await writeLikes(likesStore);
-      res.status(200).json({ poemId, count: likesStore[poemId] });
+      likes[poemId] = Math.max(0, currentCount - 1);
+      await writeLikes(likes);
+      res.status(200).json({ poemId, count: likes[poemId] });
     } else {
       console.error('Method not allowed:', req.method);
       res.status(405).json({ 
