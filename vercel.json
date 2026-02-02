@@ -5,7 +5,7 @@
       "destination": "/favicon-48.ico"
     },
     {
-      "source": "/((?!api/).*)",
+      "source": "/((?!api/|.*\\..*).*)",
       "destination": "/index.html"
     }
   ]
