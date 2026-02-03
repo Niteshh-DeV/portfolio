@@ -35,7 +35,7 @@ export function About() {
           transition={{ duration: 0.6 }}
           className="text-center mb-16"
         >
-          <h2 className="mb-4 uppercase tracking-wider">About Me</h2>
+          <h2 className="mb-4 uppercase tracking-wider font-handjet">About Me</h2>
         </motion.div>
 
         <div className="grid md:grid-cols-3 gap-8 mb-12">
@@ -55,7 +55,7 @@ export function About() {
               >
                 <feature.icon className="text-[rgb(var(--background))]" size={28} />
               </motion.div>
-              <h4 className="text-center mb-4 uppercase tracking-wider">{feature.title}</h4>
+              <h4 className="text-center mb-4 uppercase tracking-wider font-handjet">{feature.title}</h4>
               <p className="text-[rgb(var(--muted-foreground))] text-center">
                 {feature.description}
               </p>
