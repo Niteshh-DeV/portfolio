@@ -690,7 +690,7 @@ export function Poetry({}: PoetryProps) {
               className="py-8 px-4 sm:px-6 lg:px-8 border-t border-[rgb(var(--border))]"
             >
               <div className="max-w-7xl mx-auto text-center text-[rgb(var(--muted-foreground))]">
-                <p>© 2025 Nitesh. </p>
+                <p>© 2026 <a href="/" className="hover:text-[rgb(var(--foreground))] transition-colors duration-200">Nitesh</a>. </p>
                 <p className="mt-2">Designed & Developed with React, TypeScript & Tailwind CSS</p>
               </div>
             </motion.footer>
