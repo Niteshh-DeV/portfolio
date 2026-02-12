@@ -130,6 +130,45 @@ export function Hero({ heroImage, hoverHeroImage }: HeroProps) {
                 <span className="animate-pulse">|</span>
               </h3>
             </motion.div>
+
+            {/* Social Icons - Inline for mobile */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.8 }}
+              className="md:hidden flex gap-4 w-full justify-end"
+            >
+              <a href="mailto:niteshjoshi010@icloud.com" aria-label="Email">
+                <motion.div
+                  whileTap={{ scale: 0.95 }}
+                  onTouchStart={() => triggerHaptic('light')}
+                  onClick={() => triggerHaptic('medium')}
+                  className="w-12 h-12 rounded-full flex items-center justify-center backdrop-blur-sm shadow-lg border border-white/20 bg-white/10"
+                >
+                  <Mail size={22} className="text-white" />
+                </motion.div>
+              </a>
+              <a href="https://github.com/Niteshh-DeV" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+                <motion.div
+                  whileTap={{ scale: 0.95 }}
+                  onTouchStart={() => triggerHaptic('light')}
+                  onClick={() => triggerHaptic('medium')}
+                  className="w-12 h-12 rounded-full flex items-center justify-center backdrop-blur-sm shadow-lg border border-white/20 bg-white/10"
+                >
+                  <Github size={22} className="text-white" />
+                </motion.div>
+              </a>
+              <a href="https://linkedin.com/in/niteshjoshi" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
+                <motion.div
+                  whileTap={{ scale: 0.95 }}
+                  onTouchStart={() => triggerHaptic('light')}
+                  onClick={() => triggerHaptic('medium')}
+                  className="w-12 h-12 rounded-full flex items-center justify-center backdrop-blur-sm shadow-lg border border-white/20 bg-white/10"
+                >
+                  <Linkedin size={22} className="text-white" />
+                </motion.div>
+              </a>
+            </motion.div>
           </motion.div>
 
           {/* Image with Expand + Crossfade Effect */}
@@ -282,44 +321,6 @@ export function Hero({ heroImage, hoverHeroImage }: HeroProps) {
         </a>
       </motion.div>
 
-      {/* Social Icons - Bottom Center Horizontal (mobile) */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.8 }}
-        className="md:hidden absolute bottom-24 left-1/2 -translate-x-1/2 flex gap-4 z-20"
-      >
-        <a href="mailto:niteshjoshi010@icloud.com" aria-label="Email">
-          <motion.div
-            whileTap={{ scale: 0.95 }}
-            onTouchStart={() => triggerHaptic('light')}
-            onClick={() => triggerHaptic('medium')}
-            className="w-12 h-12 rounded-full flex items-center justify-center backdrop-blur-sm shadow-lg border border-white/20 bg-white/10"
-          >
-            <Mail size={22} className="text-white" />
-          </motion.div>
-        </a>
-        <a href="https://github.com/Niteshh-DeV" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
-          <motion.div
-            whileTap={{ scale: 0.95 }}
-            onTouchStart={() => triggerHaptic('light')}
-            onClick={() => triggerHaptic('medium')}
-            className="w-12 h-12 rounded-full flex items-center justify-center backdrop-blur-sm shadow-lg border border-white/20 bg-white/10"
-          >
-            <Github size={22} className="text-white" />
-          </motion.div>
-        </a>
-        <a href="https://linkedin.com/in/niteshjoshi" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
-          <motion.div
-            whileTap={{ scale: 0.95 }}
-            onTouchStart={() => triggerHaptic('light')}
-            onClick={() => triggerHaptic('medium')}
-            className="w-12 h-12 rounded-full flex items-center justify-center backdrop-blur-sm shadow-lg border border-white/20 bg-white/10"
-          >
-            <Linkedin size={22} className="text-white" />
-          </motion.div>
-        </a>
-      </motion.div>
 
       {/* Scroll Indicator */}
       <motion.button
