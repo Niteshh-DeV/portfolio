@@ -70,7 +70,11 @@ export function Contact() {
         body: formDataObj
       });
 
-      if (response.ok) {
+      const data = await response.json();
+      console.log('Formspree Response:', response.status, data);
+
+      // Formspree returns 200 for success or shows ok: true
+      if (response.status === 200 || data.ok === true) {
         setStatus('success');
         triggerHaptic('success');
         setFormData({ name: '', email: '', message: '' });
@@ -81,6 +85,7 @@ export function Contact() {
         setTimeout(() => setStatus('idle'), 5000);
       }
     } catch (error) {
+      console.error('Form submission error:', error);
       setStatus('error');
       triggerHaptic('error');
       setTimeout(() => setStatus('idle'), 5000);
