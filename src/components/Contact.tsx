@@ -60,12 +60,14 @@ export function Contact() {
     triggerHaptic('medium');
     
     try {
-      const response = await fetch('https://formspree.io/f/xanykyay', {
+      const formDataObj = new FormData();
+      formDataObj.append('name', formData.name);
+      formDataObj.append('email', formData.email);
+      formDataObj.append('message', formData.message);
+
+      const response = await fetch('https://formspree.io/f/xjgeragy', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(formData)
+        body: formDataObj
       });
 
       if (response.ok) {
