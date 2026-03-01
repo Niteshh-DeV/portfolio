@@ -1,6 +1,7 @@
 import { motion } from 'motion/react';
 import { ChevronDown, Mail, Github, Linkedin } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useHaptic } from '@/hooks/useHaptic';
 
 interface HeroProps {
@@ -9,6 +10,7 @@ interface HeroProps {
 }
 
 export function Hero({ heroImage, hoverHeroImage }: HeroProps) {
+  const navigate = useNavigate();
   const titles = [
     'Engineering Student',
     'Poet',
@@ -66,6 +68,11 @@ export function Hero({ heroImage, hoverHeroImage }: HeroProps) {
         behavior: 'smooth'
       });
     }
+  };
+
+  const goToPoetry = () => {
+    triggerHaptic('medium');
+    navigate('/poetry');
   };
 
   return (
@@ -130,6 +137,21 @@ export function Hero({ heroImage, hoverHeroImage }: HeroProps) {
                 <span className="animate-pulse">|</span>
               </h3>
             </motion.div>
+
+            <motion.button
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.65 }}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={goToPoetry}
+              onTouchStart={() => triggerHaptic('selection')}
+              className="mb-8 md:mb-10 px-6 py-3 rounded-full border border-white/20 bg-white/10 text-white font-semibold tracking-wide backdrop-blur-sm hover:bg-white/20 transition-colors"
+              style={{ fontFamily: '"Orbitron", sans-serif' }}
+              aria-label="Open poetry section"
+            >
+              Read My Poetry
+            </motion.button>
 
             {/* Social Icons - Inline for mobile */}
             <motion.div
