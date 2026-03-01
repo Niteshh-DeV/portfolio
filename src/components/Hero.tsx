@@ -145,31 +145,31 @@ export function Hero({ heroImage, hoverHeroImage }: HeroProps) {
               transition={{ delay: 0.65 }}
               className="mb-8 md:mb-10 flex flex-wrap gap-3"
             >
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={goToPoetry}
-                onTouchStart={() => triggerHaptic('selection')}
-                className="px-6 py-3 rounded-full border border-white/20 bg-white/10 text-white font-semibold tracking-wide backdrop-blur-sm hover:bg-white/20 transition-colors"
-                style={{ fontFamily: '"Orbitron", sans-serif' }}
-                aria-label="Open poetry section"
-              >
-                Read My Poetry
-              </motion.button>
-
               <motion.a
-                whileHover={{ scale: 1.02 }}
+                whileHover={{ scale: 1.04, y: -3, boxShadow: '0 12px 26px rgba(255, 255, 255, 0.2)' }}
                 whileTap={{ scale: 0.98 }}
                 href={cvPdf}
                 download="Nitesh_Joshi_CV.pdf"
                 onClick={() => triggerHaptic('medium')}
                 onTouchStart={() => triggerHaptic('selection')}
-                className="px-6 py-3 rounded-full border border-white/20 bg-white/10 text-white font-semibold tracking-wide backdrop-blur-sm hover:bg-white/20 transition-colors inline-flex items-center"
+                className="px-6 py-3 rounded-full border border-white/20 bg-white/10 text-white font-semibold tracking-wide backdrop-blur-sm hover:bg-[rgb(var(--foreground))] hover:text-[rgb(var(--background))] hover:border-[rgb(var(--foreground))] transition-all duration-300 inline-flex items-center"
                 style={{ fontFamily: '"Orbitron", sans-serif' }}
                 aria-label="Download CV"
               >
                 Download CV
               </motion.a>
+
+              <motion.button
+                whileHover={{ scale: 1.04, y: -3, boxShadow: '0 12px 26px rgba(255, 255, 255, 0.2)' }}
+                whileTap={{ scale: 0.98 }}
+                onClick={goToPoetry}
+                onTouchStart={() => triggerHaptic('selection')}
+                className="px-6 py-3 rounded-full border border-white/20 bg-white/10 text-white font-semibold tracking-wide backdrop-blur-sm hover:bg-[rgb(var(--foreground))] hover:text-[rgb(var(--background))] hover:border-[rgb(var(--foreground))] transition-all duration-300"
+                style={{ fontFamily: '"Orbitron", sans-serif' }}
+                aria-label="Open poetry section"
+              >
+                Read My Poetry
+              </motion.button>
             </motion.div>
 
             {/* Social Icons - Inline for mobile */}
