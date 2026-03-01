@@ -3,6 +3,7 @@ import { ChevronDown, Mail, Github, Linkedin } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useHaptic } from '@/hooks/useHaptic';
+import cvPdf from '@/assets/CV/Nitesh Joshi-2.pdf';
 
 interface HeroProps {
   heroImage: string;
@@ -138,20 +139,38 @@ export function Hero({ heroImage, hoverHeroImage }: HeroProps) {
               </h3>
             </motion.div>
 
-            <motion.button
+            <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.65 }}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={goToPoetry}
-              onTouchStart={() => triggerHaptic('selection')}
-              className="mb-8 md:mb-10 px-6 py-3 rounded-full border border-white/20 bg-white/10 text-white font-semibold tracking-wide backdrop-blur-sm hover:bg-white/20 transition-colors"
-              style={{ fontFamily: '"Orbitron", sans-serif' }}
-              aria-label="Open poetry section"
+              className="mb-8 md:mb-10 flex flex-wrap gap-3"
             >
-              Read My Poetry
-            </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={goToPoetry}
+                onTouchStart={() => triggerHaptic('selection')}
+                className="px-6 py-3 rounded-full border border-white/20 bg-white/10 text-white font-semibold tracking-wide backdrop-blur-sm hover:bg-white/20 transition-colors"
+                style={{ fontFamily: '"Orbitron", sans-serif' }}
+                aria-label="Open poetry section"
+              >
+                Read My Poetry
+              </motion.button>
+
+              <motion.a
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                href={cvPdf}
+                download="Nitesh_Joshi_CV.pdf"
+                onClick={() => triggerHaptic('medium')}
+                onTouchStart={() => triggerHaptic('selection')}
+                className="px-6 py-3 rounded-full border border-white/20 bg-white/10 text-white font-semibold tracking-wide backdrop-blur-sm hover:bg-white/20 transition-colors inline-flex items-center"
+                style={{ fontFamily: '"Orbitron", sans-serif' }}
+                aria-label="Download CV"
+              >
+                Download CV
+              </motion.a>
+            </motion.div>
 
             {/* Social Icons - Inline for mobile */}
             <motion.div
