@@ -24,7 +24,6 @@ export function Hero({ heroImage, hoverHeroImage }: HeroProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [typingSpeed, setTypingSpeed] = useState(150);
   const [isImageExpanded, setIsImageExpanded] = useState(false);
-  const [hoveredIcon, setHoveredIcon] = useState<string | null>(null);
   const { triggerHaptic } = useHaptic();
 
   useEffect(() => {
@@ -78,8 +77,8 @@ export function Hero({ heroImage, hoverHeroImage }: HeroProps) {
 
   return (
     <section className="min-h-screen flex items-center justify-center relative overflow-hidden">
-      {/* Smooth Dark Gradient Background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-black to-gray-800" />
+      {/* Theme-aware Gradient Background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-[rgb(var(--background))] via-[rgb(var(--muted))] to-[rgb(var(--background))]" />
       
       {/* Subtle overlay pattern */}
       <div className="absolute inset-0 opacity-10" 
@@ -110,7 +109,7 @@ export function Hero({ heroImage, hoverHeroImage }: HeroProps) {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
-              className="mb-2 text-white drop-shadow-lg text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-bold leading-tight"
+              className="mb-2 text-[rgb(var(--foreground))] drop-shadow-lg text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-bold leading-tight"
               style={{ 
                 fontFamily: '"Permanent Marker", cursive',
                 textShadow: '0 4px 6px rgba(0, 0, 0, 0.4)'
@@ -124,7 +123,7 @@ export function Hero({ heroImage, hoverHeroImage }: HeroProps) {
               transition={{ delay: 0.5 }}
               className="mb-8 md:mb-12 text-base md:text-xl h-8 flex items-center"
             >
-              <h3 className="text-gray-400 font-light" style={{ fontFamily: '"Orbitron", sans-serif' }}>
+              <h3 className="text-[rgb(var(--muted-foreground))] font-light" style={{ fontFamily: '"Orbitron", sans-serif' }}>
                 {displayedText.split(' ').map((word, index) => (
                   <span key={index}>
                     {index === 0 ? (
@@ -152,7 +151,7 @@ export function Hero({ heroImage, hoverHeroImage }: HeroProps) {
                 download="Nitesh_Joshi_CV.pdf"
                 onClick={() => triggerHaptic('medium')}
                 onTouchStart={() => triggerHaptic('selection')}
-                className="px-6 py-3 rounded-full border border-white/20 bg-white/10 text-white font-semibold tracking-wide backdrop-blur-sm hover:bg-[rgb(var(--foreground))] hover:text-[rgb(var(--background))] hover:border-[rgb(var(--foreground))] transition-all duration-300 inline-flex items-center"
+                className="px-6 py-3 rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--muted))]/70 text-[rgb(var(--foreground))] font-semibold tracking-wide backdrop-blur-sm hover:bg-[rgb(var(--foreground))] hover:text-[rgb(var(--background))] hover:border-[rgb(var(--foreground))] transition-all duration-300 inline-flex items-center"
                 style={{ fontFamily: '"Orbitron", sans-serif' }}
                 aria-label="Download CV"
               >
@@ -164,7 +163,7 @@ export function Hero({ heroImage, hoverHeroImage }: HeroProps) {
                 whileTap={{ scale: 0.98 }}
                 onClick={goToPoetry}
                 onTouchStart={() => triggerHaptic('selection')}
-                className="px-6 py-3 rounded-full border border-white/20 bg-white/10 text-white font-semibold tracking-wide backdrop-blur-sm hover:bg-[rgb(var(--foreground))] hover:text-[rgb(var(--background))] hover:border-[rgb(var(--foreground))] transition-all duration-300"
+                className="px-6 py-3 rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--muted))]/70 text-[rgb(var(--foreground))] font-semibold tracking-wide backdrop-blur-sm hover:bg-[rgb(var(--foreground))] hover:text-[rgb(var(--background))] hover:border-[rgb(var(--foreground))] transition-all duration-300"
                 style={{ fontFamily: '"Orbitron", sans-serif' }}
                 aria-label="Open poetry section"
               >
@@ -184,9 +183,9 @@ export function Hero({ heroImage, hoverHeroImage }: HeroProps) {
                   whileTap={{ scale: 0.95 }}
                   onTouchStart={() => triggerHaptic('light')}
                   onClick={() => triggerHaptic('medium')}
-                  className="w-12 h-12 rounded-full flex items-center justify-center backdrop-blur-sm shadow-lg border border-white/20 bg-white/10"
+                  className="w-12 h-12 rounded-full flex items-center justify-center backdrop-blur-sm shadow-lg border border-[rgb(var(--border))] bg-[rgb(var(--muted))]/70 text-[rgb(var(--foreground))]"
                 >
-                  <Mail size={22} className="text-white" />
+                  <Mail size={22} />
                 </motion.div>
               </a>
               <a href="https://github.com/Niteshh-DeV" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
@@ -194,9 +193,9 @@ export function Hero({ heroImage, hoverHeroImage }: HeroProps) {
                   whileTap={{ scale: 0.95 }}
                   onTouchStart={() => triggerHaptic('light')}
                   onClick={() => triggerHaptic('medium')}
-                  className="w-12 h-12 rounded-full flex items-center justify-center backdrop-blur-sm shadow-lg border border-white/20 bg-white/10"
+                  className="w-12 h-12 rounded-full flex items-center justify-center backdrop-blur-sm shadow-lg border border-[rgb(var(--border))] bg-[rgb(var(--muted))]/70 text-[rgb(var(--foreground))]"
                 >
-                  <Github size={22} className="text-white" />
+                  <Github size={22} />
                 </motion.div>
               </a>
               <a href="https://linkedin.com/in/niteshjoshi" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
@@ -204,9 +203,9 @@ export function Hero({ heroImage, hoverHeroImage }: HeroProps) {
                   whileTap={{ scale: 0.95 }}
                   onTouchStart={() => triggerHaptic('light')}
                   onClick={() => triggerHaptic('medium')}
-                  className="w-12 h-12 rounded-full flex items-center justify-center backdrop-blur-sm shadow-lg border border-white/20 bg-white/10"
+                  className="w-12 h-12 rounded-full flex items-center justify-center backdrop-blur-sm shadow-lg border border-[rgb(var(--border))] bg-[rgb(var(--muted))]/70 text-[rgb(var(--foreground))]"
                 >
-                  <Linkedin size={22} className="text-white" />
+                  <Linkedin size={22} />
                 </motion.div>
               </a>
             </motion.div>
@@ -292,72 +291,36 @@ export function Hero({ heroImage, hoverHeroImage }: HeroProps) {
           <motion.div
             whileHover={{ scale: 1.15, x: 5 }}
             whileTap={{ scale: 0.95 }}
-            onMouseEnter={() => setHoveredIcon('email')}
-            onMouseLeave={() => setHoveredIcon(null)}
             onTouchStart={() => triggerHaptic('light')}
             onClick={() => triggerHaptic('medium')}
-            animate={{
-              backgroundColor: hoveredIcon === 'email' ? 'rgba(255, 255, 255, 1)' : 'rgba(255, 255, 255, 0.1)'
-            }}
             transition={{ duration: 0.3 }}
-            className="w-16 h-16 md:w-18 md:h-18 rounded-full flex items-center justify-center cursor-pointer backdrop-blur-sm shadow-lg border border-white/20"
+            className="w-16 h-16 md:w-18 md:h-18 rounded-full flex items-center justify-center cursor-pointer backdrop-blur-sm shadow-lg border border-[rgb(var(--border))] bg-[rgb(var(--muted))]/70 text-[rgb(var(--foreground))] hover:bg-[rgb(var(--foreground))] hover:text-[rgb(var(--background))] hover:border-[rgb(var(--foreground))]"
           >
-            <motion.div
-              animate={{
-                color: hoveredIcon === 'email' ? '#000000' : '#ffffff'
-              }}
-              transition={{ duration: 0.3 }}
-            >
-              <Mail size={26} className="md:w-7 md:h-7" />
-            </motion.div>
+            <Mail size={26} className="md:w-7 md:h-7" />
           </motion.div>
         </a>
         <a href="https://github.com/Niteshh-DeV" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
           <motion.div
             whileHover={{ scale: 1.15, x: 5 }}
             whileTap={{ scale: 0.95 }}
-            onMouseEnter={() => setHoveredIcon('github')}
-            onMouseLeave={() => setHoveredIcon(null)}
             onTouchStart={() => triggerHaptic('light')}
             onClick={() => triggerHaptic('medium')}
-            animate={{
-              backgroundColor: hoveredIcon === 'github' ? 'rgba(255, 255, 255, 1)' : 'rgba(255, 255, 255, 0.1)'
-            }}
             transition={{ duration: 0.3 }}
-            className="w-16 h-16 md:w-18 md:h-18 rounded-full flex items-center justify-center cursor-pointer backdrop-blur-sm shadow-lg border border-white/20"
+            className="w-16 h-16 md:w-18 md:h-18 rounded-full flex items-center justify-center cursor-pointer backdrop-blur-sm shadow-lg border border-[rgb(var(--border))] bg-[rgb(var(--muted))]/70 text-[rgb(var(--foreground))] hover:bg-[rgb(var(--foreground))] hover:text-[rgb(var(--background))] hover:border-[rgb(var(--foreground))]"
           >
-            <motion.div
-              animate={{
-                color: hoveredIcon === 'github' ? '#000000' : '#ffffff'
-              }}
-              transition={{ duration: 0.3 }}
-            >
-              <Github size={26} className="md:w-7 md:h-7" />
-            </motion.div>
+            <Github size={26} className="md:w-7 md:h-7" />
           </motion.div>
         </a>
         <a href="https://linkedin.com/in/niteshjoshi" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
           <motion.div
             whileHover={{ scale: 1.15, x: 5 }}
             whileTap={{ scale: 0.95 }}
-            onMouseEnter={() => setHoveredIcon('linkedin')}
-            onMouseLeave={() => setHoveredIcon(null)}
             onTouchStart={() => triggerHaptic('light')}
             onClick={() => triggerHaptic('medium')}
-            animate={{
-              backgroundColor: hoveredIcon === 'linkedin' ? 'rgba(255, 255, 255, 1)' : 'rgba(255, 255, 255, 0.1)'
-            }}
             transition={{ duration: 0.3 }}
-            className="w-16 h-16 md:w-18 md:h-18 rounded-full flex items-center justify-center cursor-pointer backdrop-blur-sm shadow-lg border border-white/20"
+            className="w-16 h-16 md:w-18 md:h-18 rounded-full flex items-center justify-center cursor-pointer backdrop-blur-sm shadow-lg border border-[rgb(var(--border))] bg-[rgb(var(--muted))]/70 text-[rgb(var(--foreground))] hover:bg-[rgb(var(--foreground))] hover:text-[rgb(var(--background))] hover:border-[rgb(var(--foreground))]"
           >
-            <motion.div
-              animate={{
-                color: hoveredIcon === 'linkedin' ? '#000000' : '#ffffff'
-              }}
-              transition={{ duration: 0.3 }}
-            >
-              <Linkedin size={26} className="md:w-7 md:h-7" />
-            </motion.div>
+            <Linkedin size={26} className="md:w-7 md:h-7" />
           </motion.div>
         </a>
       </motion.div>
@@ -376,10 +339,10 @@ export function Hero({ heroImage, hoverHeroImage }: HeroProps) {
           triggerHaptic('light');
         }}
         onTouchStart={() => triggerHaptic('selection')}
-        className="absolute bottom-8 left-1/2 transform -translate-x-1/2 bg-white/10 p-3 rounded-full hover:bg-white/20 transition-colors z-20 border border-white/20"
+        className="absolute bottom-8 left-1/2 transform -translate-x-1/2 bg-[rgb(var(--muted))]/70 text-[rgb(var(--foreground))] p-3 rounded-full hover:bg-[rgb(var(--foreground))] hover:text-[rgb(var(--background))] transition-colors z-20 border border-[rgb(var(--border))]"
         aria-label="Scroll to about section"
       >
-        <ChevronDown size={32} className="text-white" />
+        <ChevronDown size={32} />
       </motion.button>
     </section>
   );
