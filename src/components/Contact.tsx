@@ -67,14 +67,20 @@ export function Contact() {
 
       const response = await fetch('https://formspree.io/f/xjgeragy', {
         method: 'POST',
+        headers: {
+          Accept: 'application/json'
+        },
         body: formDataObj
       });
 
-      const data = await response.json();
-      console.log('Formspree Response:', response.status, data);
+      let data: { ok?: boolean } | null = null;
+      const contentType = response.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        data = await response.json();
+      }
 
-      // Formspree returns 200 for success or shows ok: true
-      if (response.status === 200 || data.ok === true) {
+      // Treat HTTP success as the primary signal; JSON may be absent.
+      if (response.ok && data?.ok !== false) {
         setStatus('success');
         triggerHaptic('success');
         setFormData({ name: '', email: '', message: '' });
