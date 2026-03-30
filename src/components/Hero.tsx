@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useHaptic } from '@/hooks/useHaptic';
 import cvPdf from '@/assets/CV/Nitesh Joshi-2.pdf';
+import { Hero3DBackground } from './Hero3DBackground';
 
 interface HeroProps {
   heroImage: string;
@@ -87,6 +88,8 @@ export function Hero({ heroImage, hoverHeroImage }: HeroProps) {
           backgroundSize: '40px 40px'
         }}
       />
+
+      <Hero3DBackground />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-20 relative z-10 w-full">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-center">
