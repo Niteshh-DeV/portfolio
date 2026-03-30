@@ -12,6 +12,7 @@ export function Projects() {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-100px" });
   const [hoveredProject, setHoveredProject] = useState<number | null>(null);
+  const [activeFilter, setActiveFilter] = useState('All');
   const { triggerHaptic } = useHaptic();
 
   const projects = [
@@ -57,6 +58,16 @@ export function Projects() {
     }
   ];
 
+  const filters = ['All', 'Web', 'Data/AI', 'C++'];
+
+  const filteredProjects = projects.filter(project => {
+    if (activeFilter === 'All') return true;
+    if (activeFilter === 'Web') return project.tags.includes('React');
+    if (activeFilter === 'Data/AI') return project.tags.includes('Python');
+    if (activeFilter === 'C++') return project.tags.includes('C++');
+    return true;
+  });
+
   return (
     <section id="projects" className="py-20 px-4 sm:px-6 lg:px-8 bg-[rgb(var(--muted))]/30">
       <div className="max-w-7xl mx-auto">
@@ -65,15 +76,40 @@ export function Projects() {
           initial={{ opacity: 0, y: 50 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.6 }}
-          className="text-center mb-16"
+          className="text-center mb-10"
         >
           <h2 className="mb-4 uppercase tracking-wider">Projects</h2>
         </motion.div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {projects.map((project, index) => (
+        {/* Filter Bar */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={isInView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          className="flex flex-wrap justify-center gap-4 mb-12"
+        >
+          {filters.map((filter) => (
+            <button
+              key={filter}
+              onClick={() => {
+                setActiveFilter(filter);
+                triggerHaptic('light');
+              }}
+              className={`px-6 py-2 rounded-full border border-[rgb(var(--border))] transition-all font-semibold tracking-wide ${
+                activeFilter === filter
+                  ? 'bg-[rgb(var(--foreground))] text-[rgb(var(--background))] border-[rgb(var(--foreground))]'
+                  : 'bg-[rgb(var(--muted))]/50 text-[rgb(var(--muted-foreground))] hover:border-[rgb(var(--foreground))] hover:text-[rgb(var(--foreground))]'
+              }`}
+            >
+              {filter}
+            </button>
+          ))}
+        </motion.div>
+
+        <motion.div layout className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {filteredProjects.map((project, index) => (
             <motion.div
-              key={project.title}
+              layout
               initial={{ opacity: 0, y: 50 }}
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.6, delay: index * 0.1 }}
@@ -147,7 +183,7 @@ export function Projects() {
               </div>
             </motion.div>
           ))}
-        </div>
+        </motion.div>
       </div>
     </section>
   );
