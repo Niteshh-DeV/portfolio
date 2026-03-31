@@ -23,12 +23,12 @@ export function Poetry({}: PoetryProps) {
   const likeDebounceRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
   const { triggerHaptic } = useHaptic();
 
-  const toSlug = (title: string, index: number) => {
+  const toSlug = (title: string, id: number) => {
     const base = title
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/(^-|-$)/g, '') || 'poem';
-    return `${base}-${index + 1}`;
+    return `${base}-${id}`;
   };
 
   const toLikeId = (title: string, date: string) => {
@@ -154,7 +154,7 @@ export function Poetry({}: PoetryProps) {
 
     if (!slug) return;
 
-    const matchedIndex = poems.findIndex((poem, idx) => toSlug(poem.title, idx) === slug);
+    const matchedIndex = poems.findIndex((poem, idx) => toSlug(poem.title, poem.id ?? idx + 1) === slug);
     if (matchedIndex >= 0) {
       setSelectedPoem(matchedIndex);
       const targetCard = document.getElementById(`poem-${matchedIndex}`);
@@ -173,7 +173,7 @@ export function Poetry({}: PoetryProps) {
     if (typeof window === 'undefined') return;
 
     const url = new URL(window.location.href);
-    url.searchParams.set('poem', toSlug(poems[index].title, index));
+    url.searchParams.set('poem', toSlug(poems[index].title, poems[index].id ?? index + 1));
     window.history.replaceState({}, '', url.toString());
   };
 
@@ -210,7 +210,7 @@ export function Poetry({}: PoetryProps) {
   const sharePoem = async (index: number) => {
     if (typeof window === 'undefined') return;
 
-    const slug = toSlug(poems[index].title, index);
+    const slug = toSlug(poems[index].title, poems[index].id ?? index + 1);
     const url = new URL(window.location.href);
     url.searchParams.set('poem', slug);
     const shareUrl = url.toString();
@@ -424,7 +424,7 @@ export function Poetry({}: PoetryProps) {
             displayedPoems.map((poem, poemIndex) => {
                 const likeCount = likeCounts[poemIndex] ?? 0;
                 const poemId = getPoemIdByIndex(poemIndex);
-                const slug = toSlug(poem.title, poemIndex);
+                const slug = toSlug(poem.title, poem.id ?? poemIndex + 1);
 
                 return (
                   <motion.div
@@ -466,11 +466,17 @@ export function Poetry({}: PoetryProps) {
                   
                   {/* Snippet Preview */}
                   <div className="space-y-2 mb-4 font-['Raleway',sans-serif] italic flex-grow">
-                    {getSnippet(poem.lines).map((line, lineIndex) => (
-                      <p key={lineIndex} className="text-sm leading-relaxed text-[rgb(var(--muted-foreground))]">
-                        {line}
+                    {poem.image && (!poem.lines || poem.lines.length === 0) ? (
+                      <p className="text-sm leading-relaxed text-[rgb(var(--foreground))] font-medium py-4 text-center">
+                        🖼️ View Handwritten Poem
                       </p>
-                    ))}
+                    ) : (
+                      getSnippet(poem.lines).map((line, lineIndex) => (
+                        <p key={lineIndex} className="text-sm leading-relaxed text-[rgb(var(--muted-foreground))]">
+                          {line}
+                        </p>
+                      ))
+                    )}
                     <p className="text-xs text-[rgb(var(--foreground))] opacity-60 mt-3">
                       Click to read full poem →
                     </p>
@@ -612,15 +618,24 @@ export function Poetry({}: PoetryProps) {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ delay: 0.3 }}
-                        className="mt-6 space-y-4 mb-8 font-['Raleway',sans-serif] max-w-xl mx-auto"
+                        className="mt-6 space-y-4 mb-8 font-['Raleway',sans-serif] max-w-xl mx-auto flex flex-col items-center"
                       >
+                        {poems[selectedPoem].image && (
+                          <motion.img 
+                            src={poems[selectedPoem].image} 
+                            alt={poems[selectedPoem].title}
+                            className="w-full max-w-md rounded-lg shadow-md mb-6 object-cover"
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                          />
+                        )}
                         {poems[selectedPoem].lines.map((line, lineIndex) => (
                           <motion.p
                             key={lineIndex}
                             initial={{ opacity: 0, x: -14 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: 0.35 + lineIndex * 0.08 }}
-                            className={line === '' ? 'h-4' : 'text-center italic leading-relaxed'}
+                            className={line === '' ? 'h-4' : 'text-center italic leading-relaxed w-full'}
                           >
                             {line}
                           </motion.p>
