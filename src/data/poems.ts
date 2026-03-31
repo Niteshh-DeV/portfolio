@@ -1,12 +1,53 @@
+import handwrittenImg from '@/assets/Handwritten/image.png';
+
 export type Poem = {
+  id: number;
   title: string;
   lines: string[];
   date: string;
   pattern: string;
+  image?: string;
 };
 
 export const poems: Poem[] = [
   {
+    id: 17,
+    title: 'Untitled',
+    lines: [
+      'And all of a sudden, it doesn’t make',
+      'any sense.',
+      '',
+      'The reeds in my hand get stolen.',
+      '',
+      'The vein in the heart',
+      'carries only strain.',
+      '',
+      'The sight keeps blurring,',
+      'although I have a life',
+      'bright ahead remaining.',
+      '',
+      'It maps all the tears towards her,',
+      'and these hairs, enough',
+      'to replace the bones within me.',
+      '',
+      'And these words hunt and hurt,',
+      'a solace brings',
+      'thy presence.'
+    ],
+    date: '31st Mar 2025',
+    pattern:
+      'radial-gradient(circle at 20% 50%, rgba(59, 130, 246, 0.1) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.1) 0%, transparent 50%)'
+  },
+  {
+    id: 18,
+    title: 'Untitled',
+    lines: [],
+    image: handwrittenImg,
+    date: '15th March 2025',
+    pattern: 'radial-gradient(circle at 40% 40%, rgba(236, 72, 153, 0.1) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(59, 130, 246, 0.08) 0%, transparent 50%)'
+  },
+  {
+    id: 1,
     title: 'January',
     lines: [
       'Be my January,',
@@ -49,6 +90,7 @@ export const poems: Poem[] = [
       'repeating-linear-gradient(45deg, transparent, transparent 35px, rgba(59, 130, 246, 0.05) 35px, rgba(59, 130, 246, 0.05) 70px)'
   },
   {
+    id: 2,
     title: 'The last breath',
     lines: [
       'The last breath that I will take',
@@ -78,6 +120,7 @@ export const poems: Poem[] = [
       'repeating-linear-gradient(45deg, transparent, transparent 35px, rgba(59, 130, 246, 0.05) 35px, rgba(59, 130, 246, 0.05) 70px)'
   },
   {
+    id: 3,
     title: 'Untitled',
     lines: [
       'A formative day full of rain',
@@ -109,6 +152,7 @@ export const poems: Poem[] = [
       'radial-gradient(circle at 20% 50%, rgba(59, 130, 246, 0.1) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.1) 0%, transparent 50%)'
   },
   {
+    id: 4,
     title: 'Untitled',
     lines: [
       'I wonder how she creates me,',
@@ -162,6 +206,7 @@ export const poems: Poem[] = [
       'radial-gradient(circle at 35% 50%, rgba(139, 92, 246, 0.1) 0%, transparent 50%), radial-gradient(circle at 65% 40%, rgba(59, 130, 246, 0.08) 0%, transparent 50%)'
   },
   {
+    id: 5,
     title: 'Stillness',
     lines: [
       'Idk why I am afraid',
@@ -207,6 +252,7 @@ export const poems: Poem[] = [
       'radial-gradient(circle at 25% 40%, rgba(236, 72, 153, 0.1) 0%, transparent 50%), radial-gradient(circle at 75% 60%, rgba(59, 130, 246, 0.08) 0%, transparent 50%)'
   },
   {
+    id: 6,
     title: 'Untitled',
     lines: [
       'Waiting for a miracle',
@@ -254,6 +300,7 @@ export const poems: Poem[] = [
       'radial-gradient(circle at 50% 50%, rgba(236, 72, 153, 0.1) 0%, transparent 50%), radial-gradient(circle at 0% 0%, rgba(59, 130, 246, 0.08) 0%, transparent 50%)'
   },
   {
+    id: 7,
     title: 'Untitled',
     lines: [
       'Lemme suffer a little long',
@@ -282,6 +329,7 @@ export const poems: Poem[] = [
       'repeating-linear-gradient(90deg, transparent, transparent 60px, rgba(59, 130, 246, 0.06) 60px, rgba(236, 72, 153, 0.06) 120px)'
   },
   {
+    id: 8,
     title: 'A Whisper',
     lines: [
       'A quite whisper I left',
@@ -329,6 +377,7 @@ export const poems: Poem[] = [
       'radial-gradient(circle at 25% 60%, rgba(236, 72, 153, 0.12) 0%, transparent 50%), radial-gradient(circle at 75% 30%, rgba(59, 130, 246, 0.12) 0%, transparent 50%)'
   },
   {
+    id: 9,
     title: 'Untitled',
     lines: [
       'She lives within me',
@@ -382,6 +431,7 @@ export const poems: Poem[] = [
       'radial-gradient(circle at 30% 30%, rgba(16, 185, 129, 0.1) 0%, transparent 45%), radial-gradient(circle at 75% 70%, rgba(59, 130, 246, 0.08) 0%, transparent 45%)'
   },
   {
+    id: 10,
     title: 'Untitled',
     lines: [
       'Its been a month',
@@ -420,6 +470,7 @@ export const poems: Poem[] = [
       'radial-gradient(circle at 40% 35%, rgba(236, 72, 153, 0.1) 0%, transparent 50%), radial-gradient(circle at 65% 65%, rgba(59, 130, 246, 0.08) 0%, transparent 50%)'
   },
   {
+    id: 11,
     title: 'Untitled',
     lines: [
       'She writes, She whispers, She dreams',
@@ -463,6 +514,7 @@ export const poems: Poem[] = [
       'radial-gradient(circle at 30% 40%, rgba(244, 63, 94, 0.12) 0%, transparent 45%), radial-gradient(circle at 70% 75%, rgba(59, 130, 246, 0.1) 0%, transparent 45%)'
   },
   {
+    id: 12,
     title: 'Untitled',
     lines: [
       'Its raining heavy,',
@@ -494,6 +546,7 @@ export const poems: Poem[] = [
       'radial-gradient(circle at 30% 35%, rgba(59, 130, 246, 0.12) 0%, transparent 45%), radial-gradient(circle at 70% 75%, rgba(99, 102, 241, 0.12) 0%, transparent 45%)'
   },
   {
+    id: 13,
     title: 'Untitled',
     lines: [
       'So I am here again',
@@ -548,6 +601,7 @@ export const poems: Poem[] = [
       'radial-gradient(circle at 20% 30%, rgba(59, 130, 246, 0.12) 0%, transparent 45%), radial-gradient(circle at 75% 70%, rgba(139, 92, 246, 0.1) 0%, transparent 45%)'
   },
   {
+    id: 14,
     title: 'Year',
     lines: [
       'Its new year and',
@@ -585,6 +639,7 @@ export const poems: Poem[] = [
       'radial-gradient(circle at 40% 45%, rgba(255, 255, 255, 0.09) 0%, transparent 45%), radial-gradient(circle at 70% 70%, rgba(59, 130, 246, 0.08) 0%, transparent 45%)'
   },
   {
+    id: 15,
     title: 'Untitled',
     lines: [
       "It's always one sided ,",
@@ -625,6 +680,7 @@ export const poems: Poem[] = [
       'radial-gradient(circle at 35% 45%, rgba(255, 255, 255, 0.08) 0%, transparent 45%), radial-gradient(circle at 70% 70%, rgba(59, 130, 246, 0.08) 0%, transparent 45%)'
   },
   {
+    id: 16,
     title: 'How can I ?',
     lines: [
       "How can I explain 'bout your eyes?",
