@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Moon, Sun, Menu, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
-import heroLogo from '@/assets/Krishna.jpeg';
+
 import { useHaptic } from '@/hooks/useHaptic';
 
 interface NavbarProps {
@@ -54,9 +54,7 @@ export function Navbar({ darkMode, toggleDarkMode }: NavbarProps) {
   };
 
   return (
-    <motion.nav
-      initial={{ y: -100 }}
-      animate={{ y: 0 }}
+    <nav
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         isScrolled ? 'glass-effect shadow-lg' : 'bg-[rgb(var(--background))]'
       }`}
@@ -73,16 +71,9 @@ export function Navbar({ darkMode, toggleDarkMode }: NavbarProps) {
             }}
             onTouchStart={() => triggerHaptic('selection')}
           >
-            <div className="flex items-center gap-2">
-              <img
-                src={heroLogo}
-                alt="Nitesh logo"
-                className="w-auto h-12 rounded-md object-cover"
-              />
-              <span className="text-5.5xl font-bold" style={{ fontFamily: '"Orbitron", sans-serif' }}>
-                NITESH<span style={{ color: '#ff6b35' }}>.DEV</span>
-              </span>
-            </div>
+            <motion.span layoutId="logo-text" className="text-3xl md:text-4xl font-bold" style={{ fontFamily: '"Orbitron", sans-serif', display: 'inline-block' }}>
+              NITESH<span style={{ color: '#ff6b35' }}>.DEV</span>
+            </motion.span>
           </motion.div>
 
           {/* Desktop Navigation */}
@@ -168,6 +159,6 @@ export function Navbar({ darkMode, toggleDarkMode }: NavbarProps) {
           </motion.div>
         )}
       </AnimatePresence>
-    </motion.nav>
+    </nav>
   );
 }
