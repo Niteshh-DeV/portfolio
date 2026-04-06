@@ -7,6 +7,7 @@ export type Poem = {
   date: string;
   pattern: string;
   image?: string;
+  legacyDates?: string[];
 };
 
 export const poems: Poem[] = [
@@ -35,6 +36,7 @@ export const poems: Poem[] = [
       'thy presence.'
     ],
     date: '31st Mar 2026',
+    legacyDates: ['31st Mar 2025'],
     pattern:
       'radial-gradient(circle at 20% 50%, rgba(59, 130, 246, 0.1) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.1) 0%, transparent 50%)'
   },
@@ -44,6 +46,7 @@ export const poems: Poem[] = [
     lines: [],
     image: handwrittenImg,
     date: '15th March 2026',
+    legacyDates: ['15th March 2025'],
     pattern: 'radial-gradient(circle at 40% 40%, rgba(236, 72, 153, 0.1) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(59, 130, 246, 0.08) 0%, transparent 50%)'
   },
   {

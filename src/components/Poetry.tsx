@@ -20,7 +20,7 @@ export function Poetry({}: PoetryProps) {
   const [selectedPoem, setSelectedPoem] = useState<number | null>(null);
   const [shareStatus, setShareStatus] = useState<string | null>(null);
   const [isLoadingLikes, setIsLoadingLikes] = useState(true);
-  const likeDebounceRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
+  const likeDebounceRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const { triggerHaptic } = useHaptic();
 
   const toSlug = (title: string, id: number) => {
@@ -31,7 +31,9 @@ export function Poetry({}: PoetryProps) {
     return `${base}-${id}`;
   };
 
-  const toLikeId = (title: string, date: string) => {
+  const toLikeId = (id: number) => `poem-${id}`;
+
+  const toLegacyLikeId = (title: string, date: string) => {
     const base = `${title}-${date}`
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
@@ -42,7 +44,16 @@ export function Poetry({}: PoetryProps) {
   const poems = useMemo(() => poemsData, []);
 
   const getPoemIdByIndex = useCallback(
-    (index: number) => toLikeId(poems[index].title, poems[index].date),
+    (index: number) => toLikeId(poems[index].id),
+    [poems]
+  );
+
+  const getLegacyLikeIds = useCallback(
+    (index: number) => {
+      const poem = poems[index];
+      if (!poem) return [];
+      return (poem.legacyDates ?? []).map((legacyDate) => toLegacyLikeId(poem.title, legacyDate));
+    },
     [poems]
   );
 
@@ -82,10 +93,23 @@ export function Poetry({}: PoetryProps) {
         if (Array.isArray(parsed)) {
           const normalized = parsed
             .map((item) => {
-              if (typeof item === 'string') return item;
-              if (typeof item === 'number' && poems[item]) {
-                return getPoemIdByIndex(item);
+              if (typeof item === 'string') {
+                if (poems.some((poem) => toLikeId(poem.id) === item)) {
+                  return item;
+                }
+
+                const legacyMatch = poems.find((_, index) => getLegacyLikeIds(index).includes(item));
+                if (legacyMatch) {
+                  return toLikeId(legacyMatch.id);
+                }
+
+                return null;
               }
+
+              if (typeof item === 'number' && poems[item]) {
+                return toLikeId(poems[item].id);
+              }
+
               return null;
             })
             .filter((item): item is string => Boolean(item));
@@ -100,44 +124,52 @@ export function Poetry({}: PoetryProps) {
       setLiked([]);
     }
 
-    // Fetch like counts from backend API
     const loadLikes = async () => {
       try {
         const likesData = await fetchLikes();
-        const numericKeys = Object.keys(likesData).filter((key) => /^\d+$/.test(key));
+        const migrationMap: Record<string, number> = {};
+        const removeKeys = new Set<string>();
 
-        if (numericKeys.length) {
-          const migrationMap: Record<string, number> = {};
-          numericKeys.forEach((key) => {
+        Object.entries(likesData).forEach(([key, rawCount]) => {
+          const count = Number(rawCount) || 0;
+          if (!count) return;
+
+          if (/^\d+$/.test(key)) {
             const index = Number(key);
             if (!poems[index]) return;
-            const poemId = getPoemIdByIndex(index);
-            const count = likesData[key] ?? 0;
-            const existing = migrationMap[poemId] ?? 0;
-            migrationMap[poemId] = Math.max(existing, count);
-          });
+            const poemId = toLikeId(poems[index].id);
+            migrationMap[poemId] = Math.max(migrationMap[poemId] ?? 0, count);
+            removeKeys.add(key);
+            return;
+          }
 
+          const poemIndex = poems.findIndex(
+            (poem, index) => toLikeId(poem.id) === key || getLegacyLikeIds(index).includes(key)
+          );
+
+          if (poemIndex >= 0) {
+            const poemId = toLikeId(poems[poemIndex].id);
+            migrationMap[poemId] = Math.max(migrationMap[poemId] ?? 0, count);
+            if (key !== poemId) {
+              removeKeys.add(key);
+            }
+          }
+        });
+
+        if (Object.keys(migrationMap).length) {
           try {
-            await migrateLikes(migrationMap, numericKeys);
+            await migrateLikes(migrationMap, Array.from(removeKeys));
           } catch (error) {
             console.error('Failed to migrate likes:', error);
           }
-
-          const refreshed = await fetchLikes();
-          const normalizedCounts = poems.map(
-            (poem) => refreshed[toLikeId(poem.title, poem.date)] ?? 0
-          );
-          setLikeCounts(normalizedCounts);
-        } else {
-          const normalizedCounts = poems.map(
-            (poem) => likesData[toLikeId(poem.title, poem.date)] ?? 0
-          );
-          setLikeCounts(normalizedCounts);
         }
+
+        const refreshed = Object.keys(migrationMap).length ? await fetchLikes() : likesData;
+        const normalizedCounts = poems.map((poem) => refreshed[toLikeId(poem.id)] ?? 0);
+        setLikeCounts(normalizedCounts);
       } catch (error) {
         console.error('Failed to load likes:', error);
         toast.error('Failed to load likes. Please refresh the page.');
-        // Fallback to empty counts if API fails
         setLikeCounts(poems.map(() => 0));
       } finally {
         setIsLoadingLikes(false);
@@ -145,7 +177,7 @@ export function Poetry({}: PoetryProps) {
     };
 
     loadLikes();
-  }, [poems]);
+  }, [poems, getLegacyLikeIds]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
