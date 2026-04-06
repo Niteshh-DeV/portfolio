@@ -48,11 +48,14 @@ export function Poetry({}: PoetryProps) {
     [poems]
   );
 
-  const getLegacyLikeIds = useCallback(
+  const getKnownLikeIds = useCallback(
     (index: number) => {
       const poem = poems[index];
       if (!poem) return [];
-      return (poem.legacyDates ?? []).map((legacyDate) => toLegacyLikeId(poem.title, legacyDate));
+      return [
+        toLegacyLikeId(poem.title, poem.date),
+        ...(poem.legacyDates ?? []).map((legacyDate) => toLegacyLikeId(poem.title, legacyDate)),
+      ];
     },
     [poems]
   );
@@ -98,7 +101,7 @@ export function Poetry({}: PoetryProps) {
                   return item;
                 }
 
-                const legacyMatch = poems.find((_, index) => getLegacyLikeIds(index).includes(item));
+                const legacyMatch = poems.find((_, index) => getKnownLikeIds(index).includes(item));
                 if (legacyMatch) {
                   return toLikeId(legacyMatch.id);
                 }
@@ -144,7 +147,7 @@ export function Poetry({}: PoetryProps) {
           }
 
           const poemIndex = poems.findIndex(
-            (poem, index) => toLikeId(poem.id) === key || getLegacyLikeIds(index).includes(key)
+            (poem, index) => toLikeId(poem.id) === key || getKnownLikeIds(index).includes(key)
           );
 
           if (poemIndex >= 0) {
@@ -177,7 +180,7 @@ export function Poetry({}: PoetryProps) {
     };
 
     loadLikes();
-  }, [poems, getLegacyLikeIds]);
+  }, [poems, getKnownLikeIds]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
