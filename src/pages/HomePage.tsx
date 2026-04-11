@@ -7,26 +7,13 @@ import { Projects } from '../components/Projects';
 import { Contact } from '../components/Contact';
 import { SEO } from '../components/SEO';
 import { motion } from 'motion/react';
+import { useTheme } from '../hooks/useTheme';
 import heroImg from '@/assets/hero.jpeg';
 import heroImg2 from '@/assets/Hero3.jpeg';
 
 export default function HomePage() {
-  const [darkMode, setDarkMode] = useState(true);
+  const { darkMode, toggleDarkMode } = useTheme();
   const [activeSection, setActiveSection] = useState('home');
-
-  useEffect(() => {
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'light') {
-      setDarkMode(false);
-      document.documentElement.classList.remove('dark');
-    } else {
-      setDarkMode(true);
-      document.documentElement.classList.add('dark');
-      if (!savedTheme) {
-        localStorage.setItem('theme', 'dark');
-      }
-    }
-  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -82,17 +69,6 @@ export default function HomePage() {
       url: 'https://niteshjoshi.me#contact'
     }
   } as const;
-
-  const toggleDarkMode = () => {
-    setDarkMode(!darkMode);
-    if (!darkMode) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    }
-  };
 
   const heroImage = heroImg;
 

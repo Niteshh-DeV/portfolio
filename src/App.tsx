@@ -6,20 +6,16 @@ import { ScrollToTop } from './components/ScrollToTop';
 import { Loader } from './components/Loader';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useTheme } from './hooks/useTheme';
 
 export default function App() {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'light') {
-      document.documentElement.classList.remove('dark');
-    } else {
-      document.documentElement.classList.add('dark');
-      if (!savedTheme) localStorage.setItem('theme', 'dark');
-    }
+  // Theme is initialised by useTheme on mount
+  useTheme();
 
+  useEffect(() => {
     const timer = setTimeout(() => {
       setIsLoading(false);
     }, 2000);

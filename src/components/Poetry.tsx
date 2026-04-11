@@ -8,12 +8,13 @@ import heroLogo from '@/assets/Krishna.jpeg';
 import { fetchLikes, incrementLike, decrementLike, migrateLikes } from '@/utils/poetryApi';
 import { poems as poemsData } from '@/data/poems';
 import { useHaptic } from '@/hooks/useHaptic';
+import { useTheme } from '@/hooks/useTheme';
 
 interface PoetryProps {
   onClose?: () => void;
 }
 export function Poetry({}: PoetryProps) {
-  const [darkMode, setDarkMode] = useState(true);
+  const { darkMode, toggleDarkMode } = useTheme();
   const [liked, setLiked] = useState<string[]>([]);
   const [likeCounts, setLikeCounts] = useState<number[]>([]);
   const [showAll, setShowAll] = useState(false);
@@ -59,31 +60,6 @@ export function Poetry({}: PoetryProps) {
     },
     [poems]
   );
-
-  useEffect(() => {
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'light') {
-      setDarkMode(false);
-      document.documentElement.classList.remove('dark');
-    } else {
-      setDarkMode(true);
-      document.documentElement.classList.add('dark');
-      if (!savedTheme) {
-        localStorage.setItem('theme', 'dark');
-      }
-    }
-  }, []);
-
-  const toggleDarkMode = () => {
-    setDarkMode(!darkMode);
-    if (!darkMode) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    }
-  };
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
