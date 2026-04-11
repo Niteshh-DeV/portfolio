@@ -58,7 +58,7 @@ export function Contact() {
     e.preventDefault();
     setStatus('submitting');
     triggerHaptic('medium');
-    
+
     try {
       const formDataObj = new FormData();
       formDataObj.append('name', formData.name);
@@ -254,7 +254,7 @@ export function Contact() {
               <div className="space-y-4 text-[rgb(var(--muted-foreground))]">
                 <p>
                   <strong className="text-[rgb(var(--foreground))]">Location:</strong><br />
-                  Mahendrnagar, Nepal
+                  Mahendranagar, Nepal
                 </p>
                 <p>
                   <strong className="text-[rgb(var(--foreground))]">Email:</strong><br />
