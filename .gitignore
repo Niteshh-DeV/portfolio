@@ -4,3 +4,4 @@ data/poetry-likes.json
 .vercel
 .env*.local
 .DS_Store
+build
