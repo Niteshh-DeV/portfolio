@@ -488,7 +488,7 @@ export function Poetry({}: PoetryProps) {
                 </motion.div>
               ))
             ) : (
-            displayedList.map(({ poem, origIndex }, displayIndex) => {
+            displayedList.map(({ poem, origIndex }) => {
                 const likeCount = likeCounts[origIndex] ?? 0;
                 const poemId = getPoemIdByIndex(origIndex);
                 const slug = toSlug(poem.title, poem.id ?? origIndex + 1);
@@ -689,7 +689,6 @@ export function Poetry({}: PoetryProps) {
                       >
                         {selectedPoem !== null && (() => {
                           const current = poems[selectedPoem];
-                          const hasLines = current.lines && current.lines.length > 0;
                           const hasImage = Boolean(current.image);
                           const hasAlt = Boolean(current.altImage);
 
