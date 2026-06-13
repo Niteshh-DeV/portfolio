@@ -1,4 +1,6 @@
 import handwrittenImg from '@/assets/Handwritten/image.png';
+import imgg2 from '@/assets/Handwritten/imgg2.jpeg';
+import voyageImg from '@/assets/Handwritten/the_voyage_poem.png';
 
 export type Poem = {
   id: number;
@@ -7,10 +9,25 @@ export type Poem = {
   date: string;
   pattern: string;
   image?: string;
+  altImage?: string;
+  hasAltVersion?: boolean;
   legacyDates?: string[];
 };
 
 export const poems: Poem[] = [
+  {
+    id: 20,
+    title: 'The Voyage',
+    lines: [],
+    image: imgg2,
+    altImage: voyageImg,
+    hasAltVersion: true,
+    date: '22 May 2026',
+    legacyDates: [],
+    pattern:
+      'radial-gradient(circle at 20% 50%, rgba(59, 130, 246, 0.1) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.1) 0%, transparent 50%)'
+  },
+  
   {
     id: 17,
     title: 'Untitled',

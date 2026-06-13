@@ -20,6 +20,7 @@ export function Poetry({}: PoetryProps) {
   const [showAll, setShowAll] = useState(false);
   const [selectedPoem, setSelectedPoem] = useState<number | null>(null);
   const [shareStatus, setShareStatus] = useState<string | null>(null);
+  const [viewVersion, setViewVersion] = useState<'lines' | 'image' | 'altImage'>('lines');
   const [isLoadingLikes, setIsLoadingLikes] = useState(true);
   const likeDebounceRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const { triggerHaptic } = useHaptic();
@@ -42,7 +43,29 @@ export function Poetry({}: PoetryProps) {
     return base;
   };
 
+  const parseDateValue = (dateStr: string) => {
+    if (!dateStr) return 0;
+    // remove parenthetical time info and ordinals (st,nd,rd,th)
+    let cleaned = dateStr.replace(/\(.*\)/, '').replace(/(\d+)(st|nd|rd|th)/gi, '$1').trim();
+    // Try direct parse
+    const parsed = Date.parse(cleaned);
+    if (!isNaN(parsed)) return parsed;
+    // Try to find a year fallback
+    const yearMatch = cleaned.match(/(\d{4})/);
+    if (yearMatch) {
+      return new Date(Number(yearMatch[1]), 0, 1).getTime();
+    }
+    return 0;
+  };
+
+  // keep base poems (stable indices) for likes/migrations, but build a sorted display list
   const poems = useMemo(() => poemsData, []);
+
+  const displayList = useMemo(() => {
+    const list = poems.map((p, idx) => ({ poem: p, origIndex: idx }));
+    list.sort((a, b) => parseDateValue(b.poem.date) - parseDateValue(a.poem.date));
+    return list;
+  }, [poems]);
 
   const getPoemIdByIndex = useCallback(
     (index: number) => toLikeId(poems[index].id),
@@ -114,7 +137,18 @@ export function Poetry({}: PoetryProps) {
           if (!count) return;
 
           if (/^\d+$/.test(key)) {
-            const index = Number(key);
+            const num = Number(key);
+            // If the numeric key corresponds to a poem `id`, prefer that mapping (stable id storage)
+            const poemById = poems.find((p) => p.id === num);
+            if (poemById) {
+              const poemId = toLikeId(poemById.id);
+              migrationMap[poemId] = Math.max(migrationMap[poemId] ?? 0, count);
+              removeKeys.add(key);
+              return;
+            }
+
+            // Fallback: numeric key might be an old index-based key
+            const index = num;
             if (!poems[index]) return;
             const poemId = toLikeId(poems[index].id);
             migrationMap[poemId] = Math.max(migrationMap[poemId] ?? 0, count);
@@ -181,6 +215,13 @@ export function Poetry({}: PoetryProps) {
 
   const openPoem = (index: number) => {
     setSelectedPoem(index);
+    // choose default view for the poem (prefer typed lines, then image)
+    const poem = poems[index];
+    if (poem) {
+      if (poem.lines && poem.lines.length > 0) setViewVersion('lines');
+      else if (poem.image) setViewVersion('image');
+      else if (poem.altImage) setViewVersion('altImage');
+    }
     if (typeof window === 'undefined') return;
 
     const url = new URL(window.location.href);
@@ -190,6 +231,7 @@ export function Poetry({}: PoetryProps) {
 
   const closePoem = () => {
     setSelectedPoem(null);
+    setViewVersion('lines');
     if (typeof window === 'undefined') return;
 
     const url = new URL(window.location.href);
@@ -246,9 +288,23 @@ export function Poetry({}: PoetryProps) {
     }
   };
 
-  const highlightedPoems = useMemo(() => poems.slice(0, 6), [poems]);
-  const morePoems = useMemo(() => poems.slice(6), [poems]);
-  const displayedPoems = showAll ? poems : highlightedPoems;
+  const cycleVersion = (index: number) => {
+    const poem = poems[index];
+    if (!poem) return;
+    const options: ('lines' | 'image' | 'altImage')[] = [];
+    if (poem.lines && poem.lines.length > 0) options.push('lines');
+    if (poem.image) options.push('image');
+    if (poem.altImage) options.push('altImage');
+    if (!options.length) return;
+    const current = viewVersion;
+    const idx = Math.max(0, options.indexOf(current));
+    const next = options[(idx + 1) % options.length];
+    setViewVersion(next);
+  };
+
+  const highlightedList = useMemo(() => displayList.slice(0, 6), [displayList]);
+  const moreList = useMemo(() => displayList.slice(6), [displayList]);
+  const displayedList = showAll ? displayList : highlightedList;
 
   const toggleLike = useCallback(async (index: number) => {
     const poemId = getPoemIdByIndex(index);
@@ -432,14 +488,14 @@ export function Poetry({}: PoetryProps) {
                 </motion.div>
               ))
             ) : (
-            displayedPoems.map((poem, poemIndex) => {
-                const likeCount = likeCounts[poemIndex] ?? 0;
-                const poemId = getPoemIdByIndex(poemIndex);
-                const slug = toSlug(poem.title, poem.id ?? poemIndex + 1);
+            displayedList.map(({ poem, origIndex }, displayIndex) => {
+                const likeCount = likeCounts[origIndex] ?? 0;
+                const poemId = getPoemIdByIndex(origIndex);
+                const slug = toSlug(poem.title, poem.id ?? origIndex + 1);
 
                 return (
                   <motion.div
-                    id={`poem-${poemIndex}`}
+                    id={`poem-${origIndex}`}
                     key={slug}
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -447,7 +503,7 @@ export function Poetry({}: PoetryProps) {
                     whileHover={{ scale: 1.15, zIndex: 10 }}
                     onClick={() => {
                       triggerHaptic('medium');
-                      openPoem(poemIndex);
+                      openPoem(origIndex);
                     }}
                     onTouchStart={() => triggerHaptic('light')}
                     className="relative group cursor-pointer z-0 hover:z-10 h-full"
@@ -496,10 +552,10 @@ export function Poetry({}: PoetryProps) {
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    onClick={(e) => {
+                      onClick={(e) => {
                       e.stopPropagation();
                       triggerHaptic(liked.includes(poemId) ? 'light' : 'medium');
-                      toggleLike(poemIndex);
+                      toggleLike(origIndex);
                     }}
                     onTouchStart={(e) => {
                       e.stopPropagation();
@@ -527,7 +583,7 @@ export function Poetry({}: PoetryProps) {
         </div>
 
               {/* Read More Button */}
-              {!showAll && morePoems.length > 0 && (
+              {!showAll && moreList.length > 0 && (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -631,26 +687,49 @@ export function Poetry({}: PoetryProps) {
                         transition={{ delay: 0.3 }}
                         className="mt-6 space-y-4 mb-8 font-['Raleway',sans-serif] max-w-xl mx-auto flex flex-col items-center"
                       >
-                        {poems[selectedPoem].image && (
-                          <motion.img 
-                            src={poems[selectedPoem].image} 
-                            alt={poems[selectedPoem].title}
-                            className="w-full max-w-md rounded-lg shadow-md mb-6 object-cover"
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                          />
-                        )}
-                        {poems[selectedPoem].lines.map((line, lineIndex) => (
-                          <motion.p
-                            key={lineIndex}
-                            initial={{ opacity: 0, x: -14 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: 0.35 + lineIndex * 0.08 }}
-                            className={line === '' ? 'h-4' : 'text-center italic leading-relaxed w-full'}
-                          >
-                            {line}
-                          </motion.p>
-                        ))}
+                        {selectedPoem !== null && (() => {
+                          const current = poems[selectedPoem];
+                          const hasLines = current.lines && current.lines.length > 0;
+                          const hasImage = Boolean(current.image);
+                          const hasAlt = Boolean(current.altImage);
+
+                          if (viewVersion === 'image' && hasImage) {
+                            return (
+                              <motion.img
+                                src={current.image}
+                                alt={current.title}
+                                className="w-full max-w-md rounded-lg shadow-md mb-6 object-cover"
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                              />
+                            );
+                          }
+
+                          if (viewVersion === 'altImage' && hasAlt) {
+                            return (
+                              <motion.img
+                                src={current.altImage}
+                                alt={`${current.title} (alternate)`}
+                                className="w-full max-w-md rounded-lg shadow-md mb-6 object-cover"
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                              />
+                            );
+                          }
+
+                          // default to lines view
+                          return current.lines.map((line, lineIndex) => (
+                            <motion.p
+                              key={lineIndex}
+                              initial={{ opacity: 0, x: -14 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: 0.35 + lineIndex * 0.08 }}
+                              className={line === '' ? 'h-4' : 'text-center italic leading-relaxed w-full'}
+                            >
+                              {line}
+                            </motion.p>
+                          ));
+                        })()}
                       </motion.div>
 
                       <motion.div
@@ -660,6 +739,22 @@ export function Poetry({}: PoetryProps) {
                         className="flex flex-col items-center gap-3"
                       >
                         <div className="flex flex-wrap justify-center gap-3">
+                          {selectedPoem !== null && poems[selectedPoem]?.hasAltVersion && (
+                            <motion.button
+                              whileHover={{ scale: 1.06 }}
+                              whileTap={{ scale: 0.94 }}
+                              onClick={() => {
+                                triggerHaptic('medium');
+                                cycleVersion(selectedPoem);
+                              }}
+                              onTouchStart={() => triggerHaptic('light')}
+                              className="flex items-center gap-2 px-4 py-2 bg-[rgb(var(--background))] rounded-full border border-[rgb(var(--border))] hover:bg-[rgb(var(--muted))] transition-all shadow-lg shadow-[rgba(0,0,0,0.08)]"
+                            >
+                              <span className="text-sm">
+                                Toggle version
+                              </span>
+                            </motion.button>
+                          )}
                           <motion.button
                             whileHover={{ scale: 1.06 }}
                             whileTap={{ scale: 0.94 }}
