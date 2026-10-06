@@ -21,7 +21,7 @@ export function Projects() {
       title: 'Drishya',
       description: 'An immersive AI assisted tourism experience for exploring the districts, places, and stories of Nepal’s Sudurpashchim Province.',
       tags: ['React', 'TypeScript', 'Interactive Map', 'Vercel'],
-      github: '',
+      github: 'https://github.com/Niteshh-DeV/Drishya.git',
       live: 'https://drishya-fwu.vercel.app',
       image: drishyaImg
     },
