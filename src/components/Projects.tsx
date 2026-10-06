@@ -17,6 +17,14 @@ export function Projects() {
   const { triggerHaptic } = useHaptic();
 
   const projects = [
+      {
+      title: 'Drishya',
+      description: 'An immersive AI assisted tourism experience for exploring the districts, places, and stories of Nepal’s Sudurpashchim Province.',
+      tags: ['React', 'TypeScript', 'Interactive Map', 'Vercel'],
+      github: '',
+      live: 'https://drishya-fwu.vercel.app',
+      image: drishyaImg
+    },
     {
       title: 'Personal Portfolio Website',
       description: 'Built a responsive and interactive personal portfolio website to showcase my projects, skills, and experience.',
@@ -26,14 +34,7 @@ export function Projects() {
       image: project1Img
 
     },
-    {
-      title: 'Drishya',
-      description: 'An immersive AI assisted tourism experience for exploring the districts, places, and stories of Nepal’s Sudurpashchim Province.',
-      tags: ['React', 'TypeScript', 'Interactive Map', 'Vercel'],
-      github: '',
-      live: 'https://drishya-fwu.vercel.app',
-      image: drishyaImg
-    },
+  
     {
       title: 'Weather App',
       description: 'Build an interactive weather application that fetches real-time data from a public API and displays it with dynamic backgrounds based on weather conditions.',
