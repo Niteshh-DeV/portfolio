@@ -7,6 +7,7 @@ import { useHaptic } from '@/hooks/useHaptic';
 const project1Img = new URL('../assets/projectImage/p1.png', import.meta.url).href;
 const project2Img = new URL('../assets/projectImage/p2.png', import.meta.url).href;
 const project3Img = new URL('../assets/projectImage/p3.png', import.meta.url).href;
+const drishyaImg = new URL('../assets/projectImage/drishya.png', import.meta.url).href;
 
 export function Projects() {
   const ref = useRef(null);
@@ -24,6 +25,14 @@ export function Projects() {
       live: 'https://niteshjoshi.me',
       image: project1Img
 
+    },
+    {
+      title: 'Drishya',
+      description: 'An immersive AI assisted tourism experience for exploring the districts, places, and stories of Nepal’s Sudurpashchim Province.',
+      tags: ['React', 'TypeScript', 'Interactive Map', 'Vercel'],
+      github: '',
+      live: 'https://drishya-fwu.vercel.app',
+      image: drishyaImg
     },
     {
       title: 'Weather App',
