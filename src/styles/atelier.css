@@ -1865,6 +1865,22 @@ body::after {
   font-style: italic;
 }
 
+/* A name pencilled beside a title: there if you look, brighter if you lean in */
+.whisper {
+  margin-left: 0.4em;
+  font-size: 0.36em;
+  font-style: italic;
+  letter-spacing: 0.06em;
+  vertical-align: 0.9em;
+  opacity: 0.2;
+  transition: opacity 0.8s var(--ease);
+}
+
+.poem-row:hover .whisper,
+.reader__title:hover .whisper {
+  opacity: 0.85;
+}
+
 .poem-row__snippet {
   font-family: var(--serif);
   font-style: italic;

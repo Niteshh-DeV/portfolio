@@ -16,6 +16,11 @@ export type Poem = {
   audio?: string;
   /** BCP 47 code for poems not in English, e.g. 'ne' or 'hi' (set in Devanagari). */
   lang?: string;
+  /**
+   * A name set faintly beside the title, in pencil. It shows only on the page;
+   * links, share cards and page titles carry the title alone.
+   */
+  whisper?: string;
 };
 
 export const poems: Poem[] = [
@@ -780,5 +785,27 @@ export const poems: Poem[] = [
     date: '25th July 2026',
     pattern:
       'radial-gradient(circle at 30% 40%, rgba(236, 72, 153, 0.1) 0%, transparent 45%), radial-gradient(circle at 70% 70%, rgba(16, 185, 129, 0.08) 0%, transparent 45%)'
+  },
+  {
+    id: 22,
+    title: 'Her',
+    whisper: 'Aaru',
+    lines: [
+      'I just wonder',
+      'The majestic eyes of her',
+      'Searches for a moment,',
+      'A moment I wished to be true',
+      'And a moment to reflect',
+      'The way we come along through',
+      '',
+      'The yearn to look into her eyes',
+      'The desire to be with her in her highs',
+      'The wish to hold her like a kid',
+      'And the aspiration to treat her',
+      'Like no-one ever did .'
+    ],
+    date: '11th Nov 2026',
+    pattern:
+      'radial-gradient(circle at 25% 40%, rgba(236, 72, 153, 0.1) 0%, transparent 50%), radial-gradient(circle at 75% 60%, rgba(59, 130, 246, 0.08) 0%, transparent 50%)'
   }
 ];

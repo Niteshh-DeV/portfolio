@@ -572,6 +572,7 @@ export function Poetry({}: PoetryProps) {
 
                   <h3 className={`poem-row__title ${isFirstLine ? 'poem-row__title--first-line' : ''}`} lang={poem.lang}>
                     {heading}
+                    {poem.whisper && <span className="whisper">({poem.whisper})</span>}
                   </h3>
 
                   <p className="poem-row__snippet" lang={poem.lang}>{preview}</p>
@@ -646,7 +647,10 @@ export function Poetry({}: PoetryProps) {
                   transition={{ duration: 1, delay: 0.45, ease: EASE }}
                 >
                   <p className="label">{current.date}</p>
-                  <h2 className="reader__title">{current.title}</h2>
+                  <h2 className="reader__title">
+                    {current.title}
+                    {current.whisper && <span className="whisper">({current.whisper})</span>}
+                  </h2>
                   {current.audio && <Reading src={current.audio} />}
                 </motion.div>
 
