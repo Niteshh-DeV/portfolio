@@ -1,37 +1,75 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { Quote, Heart, X, ChevronDown, Share2, Shuffle, Sparkles } from 'lucide-react';
+import { useState, useEffect, useMemo, useRef, useCallback, Fragment } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { Heart } from 'lucide-react';
 import { toast } from 'sonner';
 import { Navbar } from './Navbar';
 import { SEO } from './SEO';
-import heroLogo from '@/assets/Krishna.jpeg';
+import { Footer } from './Footer';
+import { EASE } from './Reveal';
+import heroLogo from '@/assets/Krishna.webp';
 import { fetchLikes, incrementLike, decrementLike, migrateLikes } from '@/utils/poetryApi';
 import { poems as poemsData } from '@/data/poems';
+import { parseDateValue, poemHeading, poemLines, poemSlug, poemYear } from '@/utils/poems';
+import { lockScroll } from '@/utils/scroll';
+import { playTone } from '@/utils/sound';
 import { useHaptic } from '@/hooks/useHaptic';
 import { useTheme } from '@/hooks/useTheme';
 
 interface PoetryProps {
   onClose?: () => void;
 }
+
+/** Play/pause for a poem that has a recorded reading (`audio` in the poem data). */
+function Reading({ src }: { src: string }) {
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [playing, setPlaying] = useState(false);
+  const [progress, setProgress] = useState(0);
+
+  const toggle = () => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (audio.paused) void audio.play();
+    else audio.pause();
+  };
+
+  return (
+    <div className="reading">
+      <audio
+        ref={audioRef}
+        src={src}
+        preload="none"
+        onPlay={() => setPlaying(true)}
+        onPause={() => setPlaying(false)}
+        onEnded={() => setProgress(0)}
+        onTimeUpdate={(e) => {
+          const { currentTime, duration } = e.currentTarget;
+          setProgress(duration ? currentTime / duration : 0);
+        }}
+      />
+      <button type="button" className="link" onClick={toggle} aria-pressed={playing}>
+        {playing ? 'Pause' : 'Listen'} <span className="link__arrow">{playing ? '❙❙' : '▶'}</span>
+      </button>
+      <span className="reading__bar" aria-hidden="true">
+        <i style={{ transform: `scaleX(${progress})` }} />
+      </span>
+      <span className="label">Read by the author</span>
+    </div>
+  );
+}
+
 export function Poetry({}: PoetryProps) {
   const { darkMode, toggleDarkMode } = useTheme();
+  const navigate = useNavigate();
+  const { slug: routeSlug } = useParams();
   const [liked, setLiked] = useState<string[]>([]);
   const [likeCounts, setLikeCounts] = useState<number[]>([]);
-  const [showAll, setShowAll] = useState(false);
-  const [selectedPoem, setSelectedPoem] = useState<number | null>(null);
   const [shareStatus, setShareStatus] = useState<string | null>(null);
   const [viewVersion, setViewVersion] = useState<'lines' | 'image' | 'altImage'>('lines');
   const [isLoadingLikes, setIsLoadingLikes] = useState(true);
+  const [activeYear, setActiveYear] = useState('All');
   const likeDebounceRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const { triggerHaptic } = useHaptic();
-
-  const toSlug = (title: string, id: number) => {
-    const base = title
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/(^-|-$)/g, '') || 'poem';
-    return `${base}-${id}`;
-  };
 
   const toLikeId = (id: number) => `poem-${id}`;
 
@@ -43,21 +81,6 @@ export function Poetry({}: PoetryProps) {
     return base;
   };
 
-  const parseDateValue = (dateStr: string) => {
-    if (!dateStr) return 0;
-    // remove parenthetical time info and ordinals (st,nd,rd,th)
-    let cleaned = dateStr.replace(/\(.*\)/, '').replace(/(\d+)(st|nd|rd|th)/gi, '$1').trim();
-    // Try direct parse
-    const parsed = Date.parse(cleaned);
-    if (!isNaN(parsed)) return parsed;
-    // Try to find a year fallback
-    const yearMatch = cleaned.match(/(\d{4})/);
-    if (yearMatch) {
-      return new Date(Number(yearMatch[1]), 0, 1).getTime();
-    }
-    return 0;
-  };
-
   // keep base poems (stable indices) for likes/migrations, but build a sorted display list
   const poems = useMemo(() => poemsData, []);
 
@@ -66,6 +89,13 @@ export function Poetry({}: PoetryProps) {
     list.sort((a, b) => parseDateValue(b.poem.date) - parseDateValue(a.poem.date));
     return list;
   }, [poems]);
+
+  // The open poem lives in the URL: /poetry/<slug>
+  const selectedPoem = useMemo(() => {
+    if (!routeSlug) return null;
+    const index = poems.findIndex((poem) => poemSlug(poem) === routeSlug);
+    return index >= 0 ? index : null;
+  }, [poems, routeSlug]);
 
   const getPoemIdByIndex = useCallback(
     (index: number) => toLikeId(poems[index].id),
@@ -192,18 +222,13 @@ export function Poetry({}: PoetryProps) {
     loadLikes();
   }, [poems, getKnownLikeIds]);
 
+  // Links shared before poems had their own pages used /poetry?poem=<slug>
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const params = new URLSearchParams(window.location.search);
-    const slug = params.get('poem');
-
-    if (!slug) return;
-
-    const matchedIndex = poems.findIndex((poem, idx) => toSlug(poem.title, poem.id ?? idx + 1) === slug);
-    if (matchedIndex >= 0) {
-      setSelectedPoem(matchedIndex);
-      const targetCard = document.getElementById(`poem-${matchedIndex}`);
-      targetCard?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const legacySlug = new URLSearchParams(window.location.search).get('poem');
+    if (legacySlug && poems.some((poem) => poemSlug(poem) === legacySlug)) {
+      navigate(`/poetry/${legacySlug}`, { replace: true });
+    } else if (routeSlug && !poems.some((poem) => poemSlug(poem) === routeSlug)) {
+      navigate('/poetry', { replace: true });
     }
   }, []);
 
@@ -213,30 +238,22 @@ export function Poetry({}: PoetryProps) {
     localStorage.setItem('poetry-liked', JSON.stringify(liked));
   }, [liked]);
 
-  const openPoem = (index: number) => {
-    setSelectedPoem(index);
-    // choose default view for the poem (prefer typed lines, then image)
-    const poem = poems[index];
-    if (poem) {
-      if (poem.lines && poem.lines.length > 0) setViewVersion('lines');
-      else if (poem.image) setViewVersion('image');
-      else if (poem.altImage) setViewVersion('altImage');
-    }
-    if (typeof window === 'undefined') return;
+  // choose default view for the poem (prefer typed lines, then image)
+  useEffect(() => {
+    if (selectedPoem === null) return;
+    const poem = poems[selectedPoem];
+    if (poem.lines && poem.lines.length > 0) setViewVersion('lines');
+    else if (poem.image) setViewVersion('image');
+    else if (poem.altImage) setViewVersion('altImage');
+  }, [selectedPoem, poems]);
 
-    const url = new URL(window.location.href);
-    url.searchParams.set('poem', toSlug(poems[index].title, poems[index].id ?? index + 1));
-    window.history.replaceState({}, '', url.toString());
+  const openPoem = (index: number, { replace = false } = {}) => {
+    playTone('page');
+    navigate(`/poetry/${poemSlug(poems[index])}`, { replace });
   };
 
   const closePoem = () => {
-    setSelectedPoem(null);
-    setViewVersion('lines');
-    if (typeof window === 'undefined') return;
-
-    const url = new URL(window.location.href);
-    url.searchParams.delete('poem');
-    window.history.replaceState({}, '', url.toString());
+    navigate('/poetry');
   };
 
   const showShareStatus = (message: string) => {
@@ -244,10 +261,9 @@ export function Poetry({}: PoetryProps) {
     setTimeout(() => setShareStatus(null), 2200);
   };
 
-  const openRandomPoem = useCallback(() => {
-    const randomIndex = Math.floor(Math.random() * poems.length);
-    openPoem(randomIndex);
-  }, [poems.length]);
+  const openRandomPoem = () => {
+    openPoem(Math.floor(Math.random() * poems.length));
+  };
 
   const getTodaysPick = useCallback(() => {
     const today = new Date();
@@ -256,17 +272,10 @@ export function Poetry({}: PoetryProps) {
     return pickIndex;
   }, [poems.length]);
 
-  const openTodaysPick = useCallback(() => {
-    openPoem(getTodaysPick());
-  }, [getTodaysPick]);
-
   const sharePoem = async (index: number) => {
     if (typeof window === 'undefined') return;
 
-    const slug = toSlug(poems[index].title, poems[index].id ?? index + 1);
-    const url = new URL(window.location.href);
-    url.searchParams.set('poem', slug);
-    const shareUrl = url.toString();
+    const shareUrl = `${window.location.origin}/poetry/${poemSlug(poems[index])}`;
 
     try {
       if (navigator.share) {
@@ -302,9 +311,47 @@ export function Poetry({}: PoetryProps) {
     setViewVersion(next);
   };
 
-  const highlightedList = useMemo(() => displayList.slice(0, 6), [displayList]);
-  const moreList = useMemo(() => displayList.slice(6), [displayList]);
-  const displayedList = showAll ? displayList : highlightedList;
+  const readerRef = useRef<HTMLDivElement>(null);
+  const readerProgressRef = useRef<HTMLSpanElement>(null);
+
+  const selectedPosition = selectedPoem === null ? -1 : displayList.findIndex((entry) => entry.origIndex === selectedPoem);
+
+  // Move through the poems in the order the index lists them
+  const stepPoem = (delta: number) => {
+    if (selectedPosition < 0) return;
+    const next = (selectedPosition + delta + displayList.length) % displayList.length;
+    // replace, so Back leaves the reader instead of walking through every poem read
+    openPoem(displayList[next].origIndex, { replace: true });
+    readerRef.current?.scrollTo({ top: 0 });
+    if (readerProgressRef.current) readerProgressRef.current.style.transform = 'scaleX(0)';
+  };
+
+  const updateReaderProgress = () => {
+    const reader = readerRef.current;
+    if (!reader || !readerProgressRef.current) return;
+    const scrollable = reader.scrollHeight - reader.clientHeight;
+    const progress = scrollable > 0 ? reader.scrollTop / scrollable : 0;
+    readerProgressRef.current.style.transform = `scaleX(${progress.toFixed(4)})`;
+  };
+
+  // Reader overlay: lock the page behind it for as long as a poem is open
+  const isReading = selectedPoem !== null;
+  useEffect(() => {
+    if (!isReading) return;
+    return lockScroll();
+  }, [isReading]);
+
+  // Escape closes, arrow keys turn the page
+  useEffect(() => {
+    if (selectedPoem === null) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closePoem();
+      if (e.key === 'ArrowRight') stepPoem(1);
+      if (e.key === 'ArrowLeft') stepPoem(-1);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [selectedPoem]);
 
   const toggleLike = useCallback(async (index: number) => {
     const poemId = getPoemIdByIndex(index);
@@ -316,7 +363,7 @@ export function Poetry({}: PoetryProps) {
     }
 
     const alreadyLiked = liked.includes(poemId);
-    
+
     // Optimistically update UI
     setLiked(prev => {
       return alreadyLiked ? prev.filter(id => id !== poemId) : [...prev, poemId];
@@ -368,452 +415,341 @@ export function Poetry({}: PoetryProps) {
     likeDebounceRef.current.set(poemId, timeout);
   }, [liked, poems, getPoemIdByIndex]);
 
-  const getSnippet = (lines: string[]) => {
-    return lines.filter(line => line !== '').slice(0, 3);
-  };
+  const formatCount = (index: number) => (isLoadingLikes ? '—' : String(likeCounts[index] ?? 0));
+
+  // Collections: the poems grouped by the year they were written
+  const years = useMemo(() => {
+    const counts = new Map<string, number>();
+    displayList.forEach(({ poem }) => counts.set(poemYear(poem), (counts.get(poemYear(poem)) ?? 0) + 1));
+    return Array.from(counts, ([year, count]) => ({ year, count }));
+  }, [displayList]);
+
+  const visibleList = activeYear === 'All' ? displayList : displayList.filter(({ poem }) => poemYear(poem) === activeYear);
+
+  const current = selectedPoem === null ? null : poems[selectedPoem];
+  const currentLines = current ? poemLines(current) : [];
 
   return (
-    <div className="relative min-h-screen bg-[rgb(var(--background))] overflow-hidden">
-      <SEO 
-        title="Poetry | Nitesh Joshi"
-        description="Explore Nitesh Joshi's collection of heartfelt poems and verses. Discover poetry about love, life, and personal reflections."
-        url="https://niteshjoshi.me/poetry"
-        type="article"
-      />
+    <div className="page">
+      {current ? (
+        <SEO
+          title={`${poemHeading(current).heading} — a poem by Nitesh Joshi`}
+          description={currentLines.slice(0, 3).join(' / ') || `A handwritten poem by Nitesh Joshi, ${current.date}.`}
+          url={`https://niteshjoshi.me/poetry/${poemSlug(current)}`}
+          image={`https://niteshjoshi.me/og/${poemSlug(current)}.jpg`}
+          type="article"
+        />
+      ) : (
+        <SEO
+          title="Poetry | Nitesh Joshi"
+          description="Explore Nitesh Joshi's collection of heartfelt poems and verses. Discover poetry about love, life, and personal reflections."
+          url="https://niteshjoshi.me/poetry"
+          type="article"
+        />
+      )}
       <Navbar darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
 
-      {/* Spacer to clear the fixed navbar */}
-      <div className="h-20 md:h-24" />
-
-      <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-0 pb-28 md:pb-36">
-        <div className="flex flex-col items-center text-center gap-4 mb-16">
-          <motion.div
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.05 }}
-            className="flex items-center gap-2 cursor-pointer select-none"
-            onClick={() => (window.location.href = '/')}
-          >
-            <img
-              src={heroLogo}
-              alt="Nitesh logo"
-              className="w-auto h-12 rounded-md object-cover"
-            />
-            <span className="text-5.5xl font-bold" style={{ fontFamily: '"Orbitron", sans-serif' }}>
-              Nitesh<span style={{ color: '#ff6b35' }}>.Dev</span>
-            </span>
-          </motion.div>
-
-          <motion.h1
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="text-3xl md:text-4xl font-semibold tracking-tight"
-          >
-            Poems
-          </motion.h1>
-          <motion.h2
-            initial={{ opacity: 0, y: -6 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.15 }}
-            className="text-lg md:text-xl text-[rgb(var(--muted-foreground))]"
-          >
-            Where code meets feelings.
-          </motion.h2>
-          <motion.p
-            initial={{ opacity: 0, y: -4 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="text-sm md:text-base text-[rgb(var(--muted-foreground))] max-w-xl text-center leading-relaxed"
-          >
-            A dedicated space for the verses, memories, and quiet thoughts. Lean back, scroll slow, and tap to read in full.
-          </motion.p>
-
-          {/* Action Buttons */}
-          <motion.div
-            initial={{ opacity: 0, y: -2 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.25 }}
-            className="flex flex-wrap justify-center gap-4 mt-6"
-          >
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => {
-                triggerHaptic('light');
-                openRandomPoem();
-              }}
-              onTouchStart={() => triggerHaptic('selection')}
-              className="flex items-center gap-3 px-6 py-3 bg-[rgb(var(--muted))] rounded-full border border-[rgb(var(--border))] hover:bg-[rgb(var(--foreground))] hover:text-[rgb(var(--background))] transition-all shadow-md"
+      <main className="anthology">
+        <header className="anthology__head">
+          <div style={{ overflow: 'hidden', padding: '0.1em 0 0.12em' }}>
+            <motion.h1
+              className="anthology__title"
+              initial={{ y: '110%' }}
+              animate={{ y: 0 }}
+              transition={{ duration: 1.3, delay: 0.1, ease: EASE }}
             >
-              <Shuffle size={18} />
-              <span className="text-sm font-medium">Random Poem</span>
-            </motion.button>
+              Poe<em>ms</em>
+            </motion.h1>
+          </div>
 
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => {
-                triggerHaptic('light');
-                openTodaysPick();
-              }}
-              onTouchStart={() => triggerHaptic('selection')}
-              className="flex items-center gap-3 px-6 py-3 bg-[rgb(var(--foreground))] text-[rgb(var(--background))] rounded-full border border-[rgb(var(--foreground))] hover:opacity-90 transition-all shadow-md"
-            >
-              <Sparkles size={18} />
-              <span className="text-sm font-medium">Today's Pick</span>
-            </motion.button>
+          <motion.div
+            className="anthology__aside"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1, delay: 0.5, ease: EASE }}
+          >
+            <img src={heroLogo} alt="" className="anthology__emblem" />
+            <h2 className="anthology__sub">Where code meets feelings.</h2>
+            <p>
+              A dedicated space for the verses, memories, and quiet thoughts. Lean back, scroll slow, and tap to read in full.
+            </p>
+
+            {/* Action Buttons */}
+            <div className="anthology__actions">
+              <button
+                type="button"
+                className="link"
+                onClick={() => {
+                  triggerHaptic('light');
+                  openRandomPoem();
+                }}
+                onTouchStart={() => triggerHaptic('selection')}
+              >
+                Random Poem <span className="link__arrow">↗</span>
+              </button>
+              <button
+                type="button"
+                className="link link--accent"
+                onClick={() => {
+                  triggerHaptic('light');
+                  openPoem(getTodaysPick());
+                }}
+                onTouchStart={() => triggerHaptic('selection')}
+              >
+                Today&apos;s Pick <span className="link__arrow">↗</span>
+              </button>
+            </div>
           </motion.div>
+        </header>
+
+        {/* Poems index */}
+        <div className="toc__head">
+          <span className="label">Index of poems — newest first</span>
+          <div className="works__filters" role="group" aria-label="Filter poems by year">
+            {[{ year: 'All', count: displayList.length }, ...years].map(({ year, count }) => (
+              <button
+                key={year}
+                type="button"
+                className="works__filter"
+                aria-pressed={activeYear === year}
+                onClick={() => {
+                  triggerHaptic('light');
+                  setActiveYear(year);
+                }}
+              >
+                {year}
+                <sup>{count}</sup>
+              </button>
+            ))}
+          </div>
         </div>
 
-          {/* Poems Grid */}
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 auto-rows-fr">{isLoadingLikes ? (
-              // Skeleton state
-              Array.from({ length: 6 }).map((_, idx) => (
-                <motion.div
-                  key={`skeleton-${idx}`}
-                  initial={{ opacity: 0, y: 30 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.35, delay: idx * 0.05 }}
-                  className="glass-effect p-6 rounded-lg border-2 border-[rgb(var(--border))] h-full flex flex-col"
-                >
-                  <div className="h-4 w-24 bg-[rgb(var(--muted))] rounded mb-2 animate-pulse" />
-                  <div className="h-3 w-32 bg-[rgb(var(--muted))] rounded mb-4 animate-pulse" />
-                  <div className="space-y-2 flex-grow">
-                    <div className="h-3 w-full bg-[rgb(var(--muted))] rounded animate-pulse" />
-                    <div className="h-3 w-5/6 bg-[rgb(var(--muted))] rounded animate-pulse" />
-                    <div className="h-3 w-4/5 bg-[rgb(var(--muted))] rounded animate-pulse" />
-                  </div>
-                  <div className="h-4 w-16 bg-[rgb(var(--muted))] rounded mt-4 animate-pulse" />
-                </motion.div>
-              ))
-            ) : (
-            displayedList.map(({ poem, origIndex }) => {
-                const likeCount = likeCounts[origIndex] ?? 0;
-                const poemId = getPoemIdByIndex(origIndex);
-                const slug = toSlug(poem.title, poem.id ?? origIndex + 1);
+        <div className="toc">
+          {visibleList.map(({ poem, origIndex }, displayIndex) => {
+            const poemId = getPoemIdByIndex(origIndex);
+            const isLiked = liked.includes(poemId);
+            const snippet = poemLines(poem).slice(0, 3);
+            const isHandwritten = Boolean(poem.image) && snippet.length === 0;
+            const { heading, isFirstLine } = poemHeading(poem);
+            const preview = isHandwritten
+              ? 'Handwritten manuscript'
+              : (isFirstLine ? snippet.slice(1) : snippet.slice(0, 2)).join(' / ');
+            const year = poemYear(poem);
+            const opensYear = displayIndex === 0 || poemYear(visibleList[displayIndex - 1].poem) !== year;
 
-                return (
-                  <motion.div
-                    id={`poem-${origIndex}`}
-                    key={slug}
-                    initial={{ opacity: 0, y: 30 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.35, ease: [0.43, 0.13, 0.23, 0.96] }}
-                    whileHover={{ scale: 1.15, zIndex: 10 }}
+            return (
+              <Fragment key={poemSlug(poem)}>
+                {opensYear && (
+                  <div className="toc__year">
+                    <span className="toc__year-number">{year}</span>
+                    <span className="label">
+                      {years.find((entry) => entry.year === year)?.count} poems
+                    </span>
+                  </div>
+                )}
+
+                <motion.article
+                  id={`poem-${origIndex}`}
+                  className="poem-row"
+                  initial={{ opacity: 0, y: 24 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: '0px 0px -6% 0px' }}
+                  transition={{ duration: 0.9, ease: EASE }}
+                >
+                  <button
+                    type="button"
+                    className="poem-row__open"
+                    data-cursor="Read"
+                    aria-label={`Read ${isFirstLine ? `untitled poem: ${heading}` : heading}`}
                     onClick={() => {
                       triggerHaptic('medium');
                       openPoem(origIndex);
                     }}
                     onTouchStart={() => triggerHaptic('light')}
-                    className="relative group cursor-pointer z-0 hover:z-10 h-full"
-                  >
-                  <motion.div 
-                    className="glass-effect p-6 rounded-lg border-2 border-[rgb(var(--border))] group-hover:border-[rgb(var(--foreground))] transition-all shadow-lg shadow-[rgba(0,0,0,0.06)] h-full flex flex-col"
-                    whileHover={{
-                      boxShadow: '0 25px 50px -12px rgba(255, 255, 255, 0.25)'
-                    }}
-                    transition={{ duration: 0.35, ease: [0.43, 0.13, 0.23, 0.96] }}
-                  >
-                  {/* Glow effect on hover - same as hero image */}
-                  <motion.div
-                    className="absolute inset-0 rounded-lg pointer-events-none"
-                    initial={{ opacity: 0 }}
-                    whileHover={{ opacity: 0.3 }}
-                    transition={{ duration: 0.6 }}
-                    style={{
-                      background: 'radial-gradient(circle at center, rgba(255,255,255,0.2) 0%, transparent 70%)',
-                    }}
                   />
-                  
-                  <Quote className="absolute top-4 right-4 text-[rgb(var(--foreground))] opacity-10 group-hover:opacity-30 transition-opacity" size={32} />
-                  
-                  <h4 className="mb-2 uppercase tracking-wider text-sm">{poem.title}</h4>
-                  <p className="text-[rgb(var(--muted-foreground))] text-xs mb-4">{poem.date}</p>
-                  
-                  {/* Snippet Preview */}
-                  <div className="space-y-2 mb-4 font-['Raleway',sans-serif] italic flex-grow">
-                    {poem.image && (!poem.lines || poem.lines.length === 0) ? (
-                      <p className="text-sm leading-relaxed text-[rgb(var(--foreground))] font-medium py-4 text-center">
-                        🖼️ View Handwritten Poem
-                      </p>
-                    ) : (
-                      getSnippet(poem.lines).map((line, lineIndex) => (
-                        <p key={lineIndex} className="text-sm leading-relaxed text-[rgb(var(--muted-foreground))]">
-                          {line}
-                        </p>
-                      ))
-                    )}
-                    <p className="text-xs text-[rgb(var(--foreground))] opacity-60 mt-3">
-                      Click to read full poem →
-                    </p>
-                  </div>
 
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                      onClick={(e) => {
-                      e.stopPropagation();
-                      triggerHaptic(liked.includes(poemId) ? 'light' : 'medium');
-                      toggleLike(origIndex);
-                    }}
-                    onTouchStart={(e) => {
-                      e.stopPropagation();
-                      triggerHaptic('selection');
-                    }}
-                    className="flex items-center gap-2 mt-auto"
-                  >
-                    <Heart
-                      size={18}
-                      className={`transition-colors ${
-                        liked.includes(poemId)
-                          ? 'fill-[rgb(var(--foreground))] text-[rgb(var(--foreground))]'
-                          : 'text-[rgb(var(--muted-foreground))]'
-                      }`}
-                    />
-                    <span className="text-xs text-[rgb(var(--muted-foreground))]">
-                      {liked.includes(poemId) ? 'Liked' : 'Like'} - {likeCount}
-                    </span>
-                  </motion.button>
-                  </motion.div>
-                  </motion.div>
-                );
-              })
-            )}
-        </div>
+                  <span className="label">{String(displayIndex + 1).padStart(2, '0')}</span>
 
-              {/* Read More Button */}
-              {!showAll && moreList.length > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.5 }}
-                  className="mt-12 mb-16 text-center"
-                >
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => {
-                      triggerHaptic('light');
-                      setShowAll(true);
-                    }}
-                    onTouchStart={() => triggerHaptic('selection')}
-                    className="px-8 py-3 bg-[rgb(var(--foreground))] text-[rgb(var(--background))] rounded-lg hover:bg-[rgb(var(--secondary))] transition-all flex items-center gap-2 mx-auto shadow-lg shadow-[rgba(0,0,0,0.08)]"
-                  >
-                    Read More Poems
-                    <ChevronDown size={20} />
-                  </motion.button>
-                </motion.div>
-              )}
+                  <h3 className={`poem-row__title ${isFirstLine ? 'poem-row__title--first-line' : ''}`} lang={poem.lang}>
+                    {heading}
+                  </h3>
 
-              {showAll && (
-                <div className="mt-12 mb-16 text-center">
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => {
-                      triggerHaptic('light');
-                      setShowAll(false);
-                    }}
-                    onTouchStart={() => triggerHaptic('selection')}
-                    className="px-8 py-3 bg-[rgb(var(--muted))] text-[rgb(var(--foreground))] rounded-lg border border-[rgb(var(--border))] hover:bg-[rgb(var(--foreground))] hover:text-[rgb(var(--background))] transition-all flex items-center gap-2 mx-auto shadow-lg shadow-[rgba(0,0,0,0.08)]"
-                  >
-                    Show Less
-                  </motion.button>
-                </div>
-              )}
+                  <p className="poem-row__snippet" lang={poem.lang}>{preview}</p>
 
-            </div>
-            {/* Full Poem View */}
-            <AnimatePresence>
-              {selectedPoem !== null && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="fixed inset-0 bg-black/90 backdrop-blur-md z-[60] flex items-center justify-center p-4"
-                  onClick={closePoem}
-                >
-                  <div className="pointer-events-none absolute inset-0">
-                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(255,255,255,0.2),_transparent_70%)] blur-3xl opacity-80" />
-                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_35%_45%,_rgba(255,255,255,0.1),_transparent_60%)] blur-3xl opacity-70" />
-                  </div>
-                  <motion.div
-                    initial={{ scale: 0.92, opacity: 0, y: 20 }}
-                    animate={{ scale: 1, opacity: 1, y: 0 }}
-                    exit={{ scale: 0.92, opacity: 0, y: 20 }}
-                    transition={{ type: 'spring', damping: 18 }}
-                    className="relative w-full max-w-3xl max-h-[90vh] overflow-y-auto"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    {/* Glow effect behind the card */}
-                    <div 
-                      className="absolute inset-0 rounded-2xl pointer-events-none opacity-30 blur-2xl"
-                      style={{
-                        background: 'radial-gradient(circle at center, rgba(255,255,255,0.25) 0%, transparent 70%)',
+                  <div className="poem-row__meta">
+                    <span className="label">{poem.date}</span>
+                    <button
+                      type="button"
+                      className="like"
+                      aria-pressed={isLiked}
+                      aria-label={`${isLiked ? 'Unlike' : 'Like'} this poem`}
+                      onClick={() => {
+                        triggerHaptic(isLiked ? 'light' : 'medium');
+                        toggleLike(origIndex);
                       }}
+                      onTouchStart={() => triggerHaptic('selection')}
+                    >
+                      <Heart size={14} />
+                      {formatCount(origIndex)}
+                    </button>
+                  </div>
+                </motion.article>
+              </Fragment>
+            );
+          })}
+        </div>
+      </main>
+
+      {/* Full Poem View */}
+      <AnimatePresence>
+        {selectedPoem !== null && current && (() => {
+          const currentLiked = liked.includes(getPoemIdByIndex(selectedPoem));
+          const showImage = viewVersion === 'image' && Boolean(current.image);
+          const showAlt = viewVersion === 'altImage' && Boolean(current.altImage);
+
+          return (
+            <motion.div
+              key="reader"
+              className="reader"
+              role="dialog"
+              aria-modal="true"
+              aria-label={current.title}
+              initial={{ clipPath: 'inset(100% 0 0 0)' }}
+              animate={{ clipPath: 'inset(0% 0 0 0)' }}
+              exit={{ clipPath: 'inset(0 0 100% 0)' }}
+              transition={{ duration: 0.8, ease: [0.76, 0, 0.24, 1] }}
+            >
+              <div className="reader__scroll" ref={readerRef} onScroll={updateReaderProgress} data-lenis-prevent>
+              <div className="reader__bar">
+                <span className="label">
+                  Poems — {String(selectedPosition + 1).padStart(2, '0')} / {displayList.length}
+                </span>
+                <span className="reader__progress" ref={readerProgressRef} aria-hidden="true" />
+                <button
+                  type="button"
+                  className="link"
+                  autoFocus
+                  onClick={() => {
+                    triggerHaptic('medium');
+                    closePoem();
+                  }}
+                  onTouchStart={() => triggerHaptic('light')}
+                >
+                  Close <span className="link__arrow">✕</span>
+                </button>
+              </div>
+
+              <article className="reader__page" key={selectedPoem} lang={current.lang}>
+                <motion.div
+                  initial={{ opacity: 0, y: 24 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 1, delay: 0.45, ease: EASE }}
+                >
+                  <p className="label">{current.date}</p>
+                  <h2 className="reader__title">{current.title}</h2>
+                  {current.audio && <Reading src={current.audio} />}
+                </motion.div>
+
+                <div>
+                  {showImage || showAlt ? (
+                    <motion.img
+                      key={viewVersion}
+                      src={showImage ? current.image : current.altImage}
+                      alt={showImage ? current.title : `${current.title} (alternate)`}
+                      className="reader__image"
+                      initial={{ opacity: 0, y: 16 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.9, delay: 0.5, ease: EASE }}
                     />
-                    <div className="relative bg-[rgb(var(--background))] rounded-2xl border-2 border-[rgb(var(--border))] p-12 md:p-14 shadow-2xl">
-
-                      <motion.button
-                        type="button"
-                        whileHover={{ scale: 1.08, rotate: 90 }}
-                        whileTap={{ scale: 0.92 }}
-                        onClick={() => {
-                          triggerHaptic('medium');
-                          closePoem();
-                        }}
-                        onTouchStart={() => triggerHaptic('light')}
-                        className="absolute top-4 right-4 md:top-5 md:right-5 z-20 p-2 bg-[rgb(var(--foreground))] text-[rgb(var(--background))] rounded-full hover:bg-[rgb(var(--secondary))] transition-colors"
-                      >
-                        <X size={20} />
-                      </motion.button>
-
-                      <Quote className="absolute top-5 left-5 text-[rgb(var(--foreground))] opacity-10" size={48} />
-
-                      <motion.div
-                        initial={{ opacity: 0, y: -16 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.15 }}
-                        className="text-center mb-10"
-                      >
-                        <h2 className="mb-2 uppercase tracking-wider">{poems[selectedPoem].title}</h2>
-                        <p className="text-[rgb(var(--muted-foreground))] text-sm">{poems[selectedPoem].date}</p>
-                      </motion.div>
-
-                      <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: 0.3 }}
-                        className="mt-6 space-y-4 mb-8 font-['Raleway',sans-serif] max-w-xl mx-auto flex flex-col items-center"
-                      >
-                        {selectedPoem !== null && (() => {
-                          const current = poems[selectedPoem];
-                          const hasImage = Boolean(current.image);
-                          const hasAlt = Boolean(current.altImage);
-
-                          if (viewVersion === 'image' && hasImage) {
-                            return (
-                              <motion.img
-                                src={current.image}
-                                alt={current.title}
-                                className="w-full max-w-md rounded-lg shadow-md mb-6 object-cover"
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                              />
-                            );
-                          }
-
-                          if (viewVersion === 'altImage' && hasAlt) {
-                            return (
-                              <motion.img
-                                src={current.altImage}
-                                alt={`${current.title} (alternate)`}
-                                className="w-full max-w-md rounded-lg shadow-md mb-6 object-cover"
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                              />
-                            );
-                          }
-
-                          // default to lines view
-                          return current.lines.map((line, lineIndex) => (
-                            <motion.p
-                              key={lineIndex}
-                              initial={{ opacity: 0, x: -14 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ delay: 0.35 + lineIndex * 0.08 }}
-                              className={line === '' ? 'h-4' : 'text-center italic leading-relaxed w-full'}
-                            >
-                              {line}
-                            </motion.p>
-                          ));
-                        })()}
-                      </motion.div>
-
-                      <motion.div
+                  ) : (
+                    current.lines.map((line, lineIndex) => (
+                      <motion.p
+                        key={lineIndex}
                         initial={{ opacity: 0, y: 12 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.4 }}
-                        className="flex flex-col items-center gap-3"
+                        transition={{ duration: 0.8, delay: 0.55 + Math.min(lineIndex, 30) * 0.045, ease: EASE }}
+                        className={line === '' ? 'reader__gap' : 'reader__line'}
                       >
-                        <div className="flex flex-wrap justify-center gap-3">
-                          {selectedPoem !== null && poems[selectedPoem]?.hasAltVersion && (
-                            <motion.button
-                              whileHover={{ scale: 1.06 }}
-                              whileTap={{ scale: 0.94 }}
-                              onClick={() => {
-                                triggerHaptic('medium');
-                                cycleVersion(selectedPoem);
-                              }}
-                              onTouchStart={() => triggerHaptic('light')}
-                              className="flex items-center gap-2 px-4 py-2 bg-[rgb(var(--background))] rounded-full border border-[rgb(var(--border))] hover:bg-[rgb(var(--muted))] transition-all shadow-lg shadow-[rgba(0,0,0,0.08)]"
-                            >
-                              <span className="text-sm">
-                                Toggle version
-                              </span>
-                            </motion.button>
-                          )}
-                          <motion.button
-                            whileHover={{ scale: 1.06 }}
-                            whileTap={{ scale: 0.94 }}
-                            onClick={() => {
-                              const poemId = getPoemIdByIndex(selectedPoem);
-                              triggerHaptic(liked.includes(poemId) ? 'light' : 'medium');
-                              toggleLike(selectedPoem);
-                            }}
-                            onTouchStart={() => triggerHaptic('selection')}
-                            className="flex items-center gap-3 px-6 py-3 bg-[rgb(var(--muted))] rounded-full border border-[rgb(var(--border))] hover:bg-[rgb(var(--foreground))] hover:text-[rgb(var(--background))] transition-all shadow-lg shadow-[rgba(0,0,0,0.12)]"
-                          >
-                            <Heart
-                              size={20}
-                              className={`transition-colors ${
-                                liked.includes(getPoemIdByIndex(selectedPoem))
-                                  ? 'fill-[rgb(var(--foreground))] text-[rgb(var(--foreground))]'
-                                  : ''
-                              }`}
-                            />
-                            <span className="text-sm">
-                              {liked.includes(getPoemIdByIndex(selectedPoem)) ? 'Liked' : 'Like this poem'} - {likeCounts[selectedPoem] ?? 0}
-                            </span>
-                          </motion.button>
+                        {line}
+                      </motion.p>
+                    ))
+                  )}
+                </div>
 
-                          <motion.button
-                            whileHover={{ scale: 1.06 }}
-                            whileTap={{ scale: 0.94 }}
-                            onClick={() => {
-                              triggerHaptic('medium');
-                              sharePoem(selectedPoem);
-                            }}
-                            onTouchStart={() => triggerHaptic('light')}
-                            className="flex items-center gap-2 px-6 py-3 bg-[rgb(var(--background))] rounded-full border border-[rgb(var(--border))] hover:bg-[rgb(var(--muted))] transition-all shadow-lg shadow-[rgba(0,0,0,0.12)]"
-                          >
-                            <Share2 size={18} />
-                            <span className="text-sm">Share link</span>
-                          </motion.button>
-                        </div>
+                <span className="reader__end" aria-hidden="true">◆◆◆</span>
 
-                        {shareStatus && (
-                          <p className="text-xs text-[rgb(var(--muted-foreground))]">{shareStatus}</p>
-                        )}
-                      </motion.div>
-                    </div>
-                  </motion.div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                <div className="reader__actions">
+                  <button
+                    type="button"
+                    className="like"
+                    aria-pressed={currentLiked}
+                    onClick={() => {
+                      triggerHaptic(currentLiked ? 'light' : 'medium');
+                      toggleLike(selectedPoem);
+                    }}
+                    onTouchStart={() => triggerHaptic('selection')}
+                  >
+                    <Heart size={16} />
+                    {currentLiked ? 'Liked' : 'Like this poem'} — {formatCount(selectedPoem)}
+                  </button>
 
-            <motion.footer
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              viewport={{ once: true }}
-              className="py-8 px-4 sm:px-6 lg:px-8 border-t border-[rgb(var(--border))]"
-            >
-              <div className="max-w-7xl mx-auto text-center text-[rgb(var(--muted-foreground))]">
-                <p>© 2026 <a href="/" className="hover:text-[rgb(var(--foreground))] transition-colors duration-200">Nitesh</a>. </p>
-                <p className="mt-2">Designed & Developed with React, TypeScript & Tailwind CSS</p>
+                  <button
+                    type="button"
+                    className="link"
+                    onClick={() => {
+                      triggerHaptic('medium');
+                      sharePoem(selectedPoem);
+                    }}
+                    onTouchStart={() => triggerHaptic('light')}
+                  >
+                    Share link <span className="link__arrow">↗</span>
+                  </button>
+
+                  {current.hasAltVersion && (
+                    <button
+                      type="button"
+                      className="link"
+                      onClick={() => {
+                        triggerHaptic('medium');
+                        cycleVersion(selectedPoem);
+                      }}
+                      onTouchStart={() => triggerHaptic('light')}
+                    >
+                      Toggle version
+                    </button>
+                  )}
+
+                  <span className="label" aria-live="polite">{shareStatus}</span>
+                </div>
+
+                <nav className="reader__nav" aria-label="More poems">
+                  {([-1, 1] as const).map((delta) => {
+                    const neighbour = displayList[(selectedPosition + delta + displayList.length) % displayList.length].poem;
+
+                    return (
+                      <button
+                        key={delta}
+                        type="button"
+                        className={`reader__step ${delta > 0 ? 'reader__step--next' : ''}`}
+                        onClick={() => {
+                          triggerHaptic('light');
+                          stepPoem(delta);
+                        }}
+                      >
+                        <span className="label">{delta < 0 ? '← Previous' : 'Next →'}</span>
+                        <span className="reader__step-title">{poemHeading(neighbour).heading}</span>
+                      </button>
+                    );
+                  })}
+                </nav>
+              </article>
               </div>
-            </motion.footer>
+            </motion.div>
+          );
+        })()}
+      </AnimatePresence>
+
+      <Footer />
     </div>
   );
 }
