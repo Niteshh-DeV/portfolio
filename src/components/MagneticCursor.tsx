@@ -1,19 +1,20 @@
 import { useEffect, useRef, useState } from 'react';
 
+const INTERACTIVE = 'a, button, [role="button"], label, summary';
+const TEXT_ENTRY = 'input, textarea';
+
 export function MagneticCursor() {
   const cursorRef = useRef<HTMLDivElement>(null);
-  const auraRef = useRef<HTMLDivElement>(null);
-  const [isHovering, setIsHovering] = useState(false);
-  const [isClicking, setIsClicking] = useState(false);
-  const position = useRef({ x: 0, y: 0 });
-  const auraPosition = useRef({ x: 0, y: 0 });
-  const rafId = useRef<number>(0);
+  const [enabled] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(hover: hover) and (pointer: fine)').matches
+  );
+  const [mode, setMode] = useState<'idle' | 'hover' | 'text' | 'label'>('idle');
+  const [label, setLabel] = useState('');
+  const [isDown, setIsDown] = useState(false);
+  const [isHidden, setIsHidden] = useState(true);
 
   useEffect(() => {
-    // Skip on touch devices
-    if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
-      return;
-    }
+    if (!enabled) return;
 
     // Hide default cursor globally
     const style = document.createElement('style');
@@ -21,130 +22,82 @@ export function MagneticCursor() {
     style.textContent = '*, *::before, *::after { cursor: none !important; }';
     document.head.appendChild(style);
 
-    const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+    const target = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+    const current = { ...target };
+    let rafId = 0;
 
-    const animate = () => {
-      if (!cursorRef.current || !auraRef.current) {
-        rafId.current = requestAnimationFrame(animate);
-        return;
+    const tick = () => {
+      current.x += (target.x - current.x) * 0.22;
+      current.y += (target.y - current.y) * 0.22;
+      if (cursorRef.current) {
+        cursorRef.current.style.transform = `translate3d(${current.x}px, ${current.y}px, 0)`;
       }
-
-      // Cursor follows instantly
-      cursorRef.current.style.left = `${position.current.x}px`;
-      cursorRef.current.style.top = `${position.current.y}px`;
-
-      // Aura follows with lag
-      auraPosition.current.x = lerp(auraPosition.current.x, position.current.x, 0.15);
-      auraPosition.current.y = lerp(auraPosition.current.y, position.current.y, 0.15);
-      auraRef.current.style.left = `${auraPosition.current.x}px`;
-      auraRef.current.style.top = `${auraPosition.current.y}px`;
-
-      rafId.current = requestAnimationFrame(animate);
+      rafId = requestAnimationFrame(tick);
     };
 
     const onMouseMove = (e: MouseEvent) => {
-      position.current = { x: e.clientX, y: e.clientY };
+      target.x = e.clientX;
+      target.y = e.clientY;
+      setIsHidden(false);
+    };
 
-      // Check what's under cursor
-      const el = document.elementFromPoint(e.clientX, e.clientY);
-      if (el) {
-        const isClickable = 
-          el.tagName === 'A' ||
-          el.tagName === 'BUTTON' ||
-          el.closest('a') !== null ||
-          el.closest('button') !== null ||
-          el.closest('[role="button"]') !== null ||
-          el.closest('[onclick]') !== null ||
-          window.getComputedStyle(el).cursor === 'pointer';
-        
-        setIsHovering(!!isClickable);
+    const onMouseOver = (e: MouseEvent) => {
+      const el = e.target as Element | null;
+      if (!el?.closest) return;
+
+      const labelled = el.closest<HTMLElement>('[data-cursor]');
+      if (el.closest('[data-cursor-quiet]')) {
+        // keep the dot small so it doesn't cover what's underneath
+        setMode('idle');
+      } else if (labelled) {
+        setLabel(labelled.dataset.cursor ?? '');
+        setMode('label');
+      } else if (el.closest(TEXT_ENTRY)) {
+        setMode('text');
+      } else if (el.closest(INTERACTIVE)) {
+        setMode('hover');
       } else {
-        setIsHovering(false);
+        setMode('idle');
       }
     };
 
-    const onMouseDown = () => setIsClicking(true);
-    const onMouseUp = () => setIsClicking(false);
-
-    const onMouseEnter = () => {
-      if (cursorRef.current) cursorRef.current.style.opacity = '1';
-      if (auraRef.current) auraRef.current.style.opacity = '1';
-    };
-
-    const onMouseLeave = () => {
-      if (cursorRef.current) cursorRef.current.style.opacity = '0';
-      if (auraRef.current) auraRef.current.style.opacity = '0';
-    };
-
-    // Initialize position
-    position.current = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
-    auraPosition.current = { ...position.current };
+    const onMouseDown = () => setIsDown(true);
+    const onMouseUp = () => setIsDown(false);
+    const onLeave = () => setIsHidden(true);
 
     document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseover', onMouseOver);
     document.addEventListener('mousedown', onMouseDown);
     document.addEventListener('mouseup', onMouseUp);
-    document.addEventListener('mouseenter', onMouseEnter);
-    document.addEventListener('mouseleave', onMouseLeave);
-
-    rafId.current = requestAnimationFrame(animate);
+    document.documentElement.addEventListener('mouseleave', onLeave);
+    rafId = requestAnimationFrame(tick);
 
     return () => {
       document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseover', onMouseOver);
       document.removeEventListener('mousedown', onMouseDown);
       document.removeEventListener('mouseup', onMouseUp);
-      document.removeEventListener('mouseenter', onMouseEnter);
-      document.removeEventListener('mouseleave', onMouseLeave);
-      cancelAnimationFrame(rafId.current);
+      document.documentElement.removeEventListener('mouseleave', onLeave);
+      cancelAnimationFrame(rafId);
       document.getElementById('hide-cursor')?.remove();
     };
-  }, []);
+  }, [enabled]);
 
   // Skip render on touch devices
-  if (typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0)) {
-    return null;
-  }
+  if (!enabled) return null;
+
+  const classes = [
+    'cursor',
+    mode !== 'idle' ? `is-${mode}` : '',
+    isDown && mode !== 'label' ? 'is-down' : '',
+    isHidden ? 'is-hidden' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   return (
-    <>
-      {/* Aura - grows and turns orange on hover, shrinks on click */}
-      <div
-        ref={auraRef}
-        style={{
-          position: 'fixed',
-          pointerEvents: 'none',
-          width: isClicking ? '30px' : isHovering ? '80px' : '45px',
-          height: isClicking ? '30px' : isHovering ? '80px' : '45px',
-          borderRadius: '50%',
-          backgroundColor: isHovering ? 'rgba(255, 107, 53, 0.5)' : 'rgba(255, 255, 255, 0.25)',
-          boxShadow: isHovering 
-            ? '0 0 30px rgba(255, 107, 53, 0.6), 0 0 60px rgba(255, 107, 53, 0.3)'
-            : '0 0 15px rgba(255, 255, 255, 0.3)',
-          transform: 'translate(-50%, -50%)',
-          transition: 'width 0.2s ease-out, height 0.2s ease-out, background-color 0.2s ease-out, box-shadow 0.2s ease-out',
-          zIndex: 2147483646,
-          opacity: 1,
-        }}
-      />
-
-      {/* Cursor dot - shrinks on click */}
-      <div
-        ref={cursorRef}
-        style={{
-          position: 'fixed',
-          pointerEvents: 'none',
-          width: isClicking ? '6px' : '12px',
-          height: isClicking ? '6px' : '12px',
-          borderRadius: '50%',
-          backgroundColor: isHovering ? '#ff6b35' : '#ffffff',
-          boxShadow: isHovering
-            ? '0 0 10px rgba(255, 107, 53, 0.8), 0 0 20px rgba(255, 107, 53, 0.5)'
-            : '0 0 8px rgba(255, 255, 255, 0.8)',
-          transform: 'translate(-50%, -50%)',
-          transition: 'width 0.15s ease-out, height 0.15s ease-out, background-color 0.15s ease-out',
-          zIndex: 2147483647,
-          opacity: 1,
-        }}
-      />
-    </>
+    <div ref={cursorRef} className={classes} aria-hidden="true">
+      <div className="cursor__dot">{mode === 'label' ? label : ''}</div>
+    </div>
   );
 }
