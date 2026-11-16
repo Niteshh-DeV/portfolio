@@ -4,12 +4,21 @@ import { Hero } from '../components/Hero';
 import { About } from '../components/About';
 import { Skills } from '../components/Skills';
 import { Projects } from '../components/Projects';
+import { Record } from '../components/Record';
+import { Verse } from '../components/Verse';
 import { Contact } from '../components/Contact';
+import { Footer } from '../components/Footer';
 import { SEO } from '../components/SEO';
-import { motion } from 'motion/react';
+import { ChapterRail } from '../components/ChapterRail';
+import { Marquee } from '../components/Kinetic';
 import { useTheme } from '../hooks/useTheme';
-import heroImg from '@/assets/hero.jpeg';
-import heroImg2 from '@/assets/Hero3.jpeg';
+import heroImg from '@/assets/hero.webp';
+import heroImg2 from '@/assets/Hero3.webp';
+
+const marqueeTitles = [
+  'Engineering Student', 'Poet', 'AI/ML Enthusiast', 'Passionate Creator',
+  'Engineering Student', 'Poet', 'AI/ML Enthusiast', 'Passionate Creator',
+];
 
 export default function HomePage() {
   const { darkMode, toggleDarkMode } = useTheme();
@@ -37,7 +46,7 @@ export default function HomePage() {
       }
     };
 
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
     handleScroll();
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
@@ -73,7 +82,7 @@ export default function HomePage() {
   const heroImage = heroImg;
 
   return (
-    <div className="min-h-screen transition-colors duration-300">
+    <div className="page">
       <SEO
         title={seoData[activeSection as keyof typeof seoData].title}
         description={seoData[activeSection as keyof typeof seoData].description}
@@ -81,26 +90,22 @@ export default function HomePage() {
       />
 
       <Navbar darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
+      <ChapterRail />
 
       <main>
         <Hero heroImage={heroImage} hoverHeroImage={heroImg2} />
+
+        <Marquee items={marqueeTitles} />
+
         <About />
         <Skills />
         <Projects />
+        <Record />
+        <Verse />
         <Contact />
       </main>
 
-      <motion.footer
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        viewport={{ once: true }}
-        className="py-8 px-4 sm:px-6 lg:px-8 border-t border-[rgb(var(--border))]"
-      >
-        <div className="max-w-7xl mx-auto text-center text-[rgb(var(--muted-foreground))]">
-          <p>© 2026 <a href="/" className="hover:text-[rgb(var(--foreground))] transition-colors duration-200">Nitesh</a>. </p>
-          <p className="mt-2">Designed & Developed with React, TypeScript & Tailwind CSS</p>
-        </div>
-      </motion.footer>
+      <Footer />
     </div>
   );
 }

@@ -1,74 +1,136 @@
-import { motion } from 'motion/react';
-import { ChevronDown, Mail, Github, Linkedin } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { motion, useScroll, useTransform } from 'motion/react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useHaptic } from '@/hooks/useHaptic';
 import cvPdf from '@/assets/CV/Nitesh Joshi-2.pdf';
-import { Hero3DBackground } from './Hero3DBackground';
+import { EASE } from './Reveal';
+import { createPortraitGL, type PortraitGL } from '@/utils/portraitGL';
+import { scrollToTarget } from '@/utils/scroll';
 
 interface HeroProps {
   heroImage: string;
   hoverHeroImage?: string;
 }
 
+const kathmanduTime = new Intl.DateTimeFormat('en-GB', {
+  timeZone: 'Asia/Kathmandu',
+  hour: '2-digit',
+  minute: '2-digit',
+});
+
 export function Hero({ heroImage, hoverHeroImage }: HeroProps) {
   const navigate = useNavigate();
-  const titles = [
-    'Engineering Student',
-    'Poet',
-    'AI/ML Enthusiast',
-    'Passionate Creator',
-  ];
-
-  const [currentTitleIndex, setCurrentTitleIndex] = useState(0);
-  const [displayedText, setDisplayedText] = useState('');
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [typingSpeed, setTypingSpeed] = useState(150);
-  const [isImageExpanded, setIsImageExpanded] = useState(false);
   const { triggerHaptic } = useHaptic();
+  const sectionRef = useRef<HTMLElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
+  const portraitRef = useRef<HTMLButtonElement>(null);
+  const colourRef = useRef<HTMLImageElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [inColour, setInColour] = useState(false);
+  const inColourRef = useRef(inColour);
+  const [canHover, setCanHover] = useState(false);
+  const [time, setTime] = useState(() => kathmanduTime.format(new Date()));
 
   useEffect(() => {
-    const currentTitle = titles[currentTitleIndex];
+    const timer = setInterval(() => setTime(kathmanduTime.format(new Date())), 20000);
+    return () => clearInterval(timer);
+  }, []);
 
-    const handleTyping = () => {
-      if (!isDeleting) {
-        // Typing
-        if (displayedText.length < currentTitle.length) {
-          setDisplayedText(currentTitle.substring(0, displayedText.length + 1));
-          setTypingSpeed(150);
-        } else {
-          // Finished typing, wait then start deleting
-          setTimeout(() => setIsDeleting(true), 2000);
-        }
-      } else {
-        // Deleting
-        if (displayedText.length > 0) {
-          setDisplayedText(currentTitle.substring(0, displayedText.length - 1));
-          setTypingSpeed(100);
-        } else {
-          // Finished deleting, move to next title
-          setIsDeleting(false);
-          setCurrentTitleIndex((prev) => (prev + 1) % titles.length);
-        }
-      }
+  // Lens: the colour portrait shows through a circle that trails the pointer
+  useEffect(() => {
+    const stage = stageRef.current;
+    const portrait = portraitRef.current;
+    const colour = colourRef.current;
+    if (!stage || !portrait || !colour) return;
+    if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+    setCanHover(true);
+
+    const target = { x: portrait.offsetWidth / 2, y: portrait.offsetHeight * 0.38, r: 0 };
+    const current = { ...target };
+    let hovering = false;
+    let rafId = 0;
+
+    // With WebGL the lens becomes a liquid blob; without it the CSS circle below stays
+    const canvas = canvasRef.current;
+    let liquid: PortraitGL | null = null;
+    let disposed = false;
+    if (canvas && hoverHeroImage) {
+      createPortraitGL(canvas, heroImage, hoverHeroImage).then((instance) => {
+        if (disposed) instance?.dispose();
+        else liquid = instance;
+      });
+    }
+
+    const radius = () => {
+      if (inColourRef.current) return Math.hypot(portrait.offsetWidth, portrait.offsetHeight) * 1.1;
+      return hovering ? Math.min(portrait.offsetWidth * 0.36, 160) : 0;
     };
 
-    const timer = setTimeout(handleTyping, typingSpeed);
-    return () => clearTimeout(timer);
-  }, [displayedText, isDeleting, currentTitleIndex, typingSpeed, titles]);
+    const tick = () => {
+      target.r = radius();
+      current.x += (target.x - current.x) * 0.16;
+      current.y += (target.y - current.y) * 0.16;
+      current.r += (target.r - current.r) * 0.1;
+      colour.style.setProperty('--lx', `${current.x.toFixed(1)}px`);
+      colour.style.setProperty('--ly', `${current.y.toFixed(1)}px`);
+      const open = current.r > 0.5;
+      if (liquid && canvas) {
+        liquid.render(current.x, current.y, Math.max(0, current.r), performance.now() / 1000);
+        canvas.classList.toggle('is-live', open);
+      } else {
+        colour.style.setProperty('--lr', `${Math.max(0, current.r).toFixed(1)}px`);
+      }
+
+      const settled =
+        Math.abs(target.x - current.x) < 0.2 &&
+        Math.abs(target.y - current.y) < 0.2 &&
+        Math.abs(target.r - current.r) < 0.2;
+      // the liquid edge keeps moving for as long as the lens is open
+      rafId = settled && !(liquid && open) ? 0 : requestAnimationFrame(tick);
+    };
+
+    const wake = () => {
+      if (!rafId) rafId = requestAnimationFrame(tick);
+    };
+
+    const onMove = (e: MouseEvent) => {
+      const box = portrait.getBoundingClientRect();
+      target.x = e.clientX - box.left;
+      target.y = e.clientY - box.top;
+      const reach = 90;
+      hovering =
+        target.x > -reach && target.x < box.width + reach && target.y > -reach && target.y < box.height + reach;
+      wake();
+    };
+
+    const onLeave = () => {
+      hovering = false;
+      wake();
+    };
+
+    stage.addEventListener('mousemove', onMove);
+    stage.addEventListener('mouseleave', onLeave);
+    portrait.addEventListener('click', wake);
+
+    return () => {
+      stage.removeEventListener('mousemove', onMove);
+      stage.removeEventListener('mouseleave', onLeave);
+      portrait.removeEventListener('click', wake);
+      cancelAnimationFrame(rafId);
+      disposed = true;
+      liquid?.dispose();
+    };
+  }, []);
+
+  const toggleColour = () => {
+    triggerHaptic('medium');
+    inColourRef.current = !inColour;
+    setInColour(!inColour);
+  };
 
   const scrollToAbout = () => {
     const element = document.getElementById('about');
-    if (element) {
-      const navbarHeight = 64;
-      const elementPosition = element.getBoundingClientRect().top + window.pageYOffset;
-      const offsetPosition = elementPosition - navbarHeight;
-
-      window.scrollTo({
-        top: offsetPosition,
-        behavior: 'smooth'
-      });
-    }
+    if (element) scrollToTarget(element, { offset: -60 });
   };
 
   const goToPoetry = () => {
@@ -76,277 +138,131 @@ export function Hero({ heroImage, hoverHeroImage }: HeroProps) {
     navigate('/poetry');
   };
 
+  // Leaving the hero: the two halves of the name drift apart and the portrait sinks
+  const { scrollYProgress } = useScroll({ target: sectionRef, offset: ['start start', 'end start'] });
+  const driftLeft = useTransform(scrollYProgress, [0, 1], ['0vw', '-14vw']);
+  const driftRight = useTransform(scrollYProgress, [0, 1], ['0vw', '14vw']);
+  const portraitY = useTransform(scrollYProgress, [0, 1], ['0%', '22%']);
+  const portraitScale = useTransform(scrollYProgress, [0, 1], [1, 1.12]);
+
+  const lineIn = (delay: number) => ({
+    initial: { y: '115%' },
+    animate: { y: 0 },
+    transition: { duration: 1.4, delay, ease: EASE },
+  });
+
+  const fadeIn = (delay: number) => ({
+    initial: { opacity: 0, y: 16 },
+    animate: { opacity: 1, y: 0 },
+    transition: { duration: 1, delay, ease: EASE },
+  });
+
+  // opacity only: these two are positioned with a CSS transform
+  const appear = {
+    initial: { opacity: 0 },
+    animate: { opacity: 1 },
+    transition: { duration: 1.2, delay: 1.2 },
+  };
+
   return (
-    <section className="min-h-screen flex items-center justify-center relative overflow-hidden">
-      {/* Theme-aware Gradient Background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-[rgb(var(--background))] via-[rgb(var(--muted))] to-[rgb(var(--background))]" />
-      
-      {/* Subtle overlay pattern */}
-      <div className="absolute inset-0 opacity-10" 
-        style={{
-          backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(255,255,255,0.15) 1px, transparent 0)',
-          backgroundSize: '40px 40px'
-        }}
-      />
+    <section className="hero" aria-label="Introduction" ref={sectionRef}>
+      <div className="hero__stage" ref={stageRef}>
+        <h1 className="hero__title">
+          <span className="hero__line hero__line--a">
+            <motion.span {...lineIn(0.45)} style={{ x: driftLeft }}>Nitesh</motion.span>
+          </span>
+          <span className="hero__line hero__line--b">
+            <motion.span {...lineIn(0.6)} style={{ x: driftRight }}>Joshi</motion.span>
+          </span>
+        </h1>
 
-      <Hero3DBackground />
+        <motion.button
+          type="button"
+          ref={portraitRef}
+          className="portrait"
+          style={{ y: portraitY, scale: portraitScale }}
+          aria-pressed={inColour}
+          aria-label="Portrait of Nitesh Joshi — toggle colour"
+          data-cursor-quiet
+          onClick={toggleColour}
+          initial={{ clipPath: 'inset(100% 0 0 0)' }}
+          animate={{ clipPath: 'inset(0% 0 0 0)' }}
+          transition={{ duration: 1.5, delay: 0.3, ease: [0.76, 0, 0.24, 1] }}
+        >
+          <motion.img
+            className="portrait__mono"
+            src={heroImage}
+            alt="Nitesh Joshi - Profile"
+            initial={{ scale: 1.25 }}
+            animate={{ scale: 1 }}
+            transition={{ duration: 2, delay: 0.3, ease: EASE }}
+          />
+          {hoverHeroImage && (
+            <img ref={colourRef} className="portrait__colour" src={hoverHeroImage} alt="" aria-hidden="true" />
+          )}
+          <canvas ref={canvasRef} className="portrait__gl" aria-hidden="true" />
+          <span className="portrait__hint label">
+            {canHover ? 'Hover — in colour' : inColour ? 'Tap — in mono' : 'Tap — in colour'}
+          </span>
+        </motion.button>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-20 relative z-10 w-full">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-center">
-          {/* Text Content */}
-          <motion.div
-            initial={{ opacity: 0, x: -50 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8 }}
-            className="relative z-20 md:pr-8 order-2 md:order-1"
-          >
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.3 }}
-              className="text-gray-600 mb-2 text-sm md:text-base tracking-wide opacity-40"
-            >
-              Hi, I am
-            </motion.p>
-            <motion.h1
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-              className="mb-2 text-[rgb(var(--foreground))] drop-shadow-lg text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-bold leading-tight"
-              style={{ 
-                fontFamily: '"Permanent Marker", cursive',
-                textShadow: '0 4px 6px rgba(0, 0, 0, 0.4)'
-              }}
-            >
-              Nitesh Joshi
-            </motion.h1>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
-              className="mb-8 md:mb-12 text-base md:text-xl h-8 flex items-center"
-            >
-              <h3 className="text-[rgb(var(--muted-foreground))] font-light" style={{ fontFamily: '"Orbitron", sans-serif' }}>
-                {displayedText.split(' ').map((word, index) => (
-                  <span key={index}>
-                    {index === 0 ? (
-                      <span style={{ color: '#ff6b35' }}>{word}</span>
-                    ) : (
-                      word
-                    )}
-                    {index < displayedText.split(' ').length - 1 ? ' ' : ''}
-                  </span>
-                ))}
-                <span className="animate-pulse">|</span>
-              </h3>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.65 }}
-              className="mb-8 md:mb-10 flex flex-wrap gap-3"
-            >
-              <motion.a
-                whileHover={{ scale: 1.04, y: -3, boxShadow: '0 12px 26px rgba(255, 255, 255, 0.2)' }}
-                whileTap={{ scale: 0.98 }}
-                href={cvPdf}
-                download="Nitesh_Joshi_CV.pdf"
-                onClick={() => triggerHaptic('medium')}
-                onTouchStart={() => triggerHaptic('selection')}
-                className="px-6 py-3 rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--muted))]/70 text-[rgb(var(--foreground))] font-semibold tracking-wide backdrop-blur-sm hover:bg-[rgb(var(--foreground))] hover:text-[rgb(var(--background))] hover:border-[rgb(var(--foreground))] transition-all duration-300 inline-flex items-center"
-                style={{ fontFamily: '"Orbitron", sans-serif' }}
-                aria-label="Download CV"
-              >
-                Download CV
-              </motion.a>
-
-              <motion.button
-                whileHover={{ scale: 1.04, y: -3, boxShadow: '0 12px 26px rgba(255, 255, 255, 0.2)' }}
-                whileTap={{ scale: 0.98 }}
-                onClick={goToPoetry}
-                onTouchStart={() => triggerHaptic('selection')}
-                className="px-6 py-3 rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--muted))]/70 text-[rgb(var(--foreground))] font-semibold tracking-wide backdrop-blur-sm hover:bg-[rgb(var(--foreground))] hover:text-[rgb(var(--background))] hover:border-[rgb(var(--foreground))] transition-all duration-300"
-                style={{ fontFamily: '"Orbitron", sans-serif' }}
-                aria-label="Open poetry section"
-              >
-                Read My Poetry
-              </motion.button>
-            </motion.div>
-
-            {/* Social Icons - Inline for mobile */}
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.8 }}
-              className="md:hidden flex gap-4 w-full justify-end"
-            >
-              <a href="mailto:niteshjoshi010@icloud.com" aria-label="Email">
-                <motion.div
-                  whileTap={{ scale: 0.95 }}
-                  onTouchStart={() => triggerHaptic('light')}
-                  onClick={() => triggerHaptic('medium')}
-                  className="w-12 h-12 rounded-full flex items-center justify-center backdrop-blur-sm shadow-lg border border-[rgb(var(--border))] bg-[rgb(var(--muted))]/70 text-[rgb(var(--foreground))]"
-                >
-                  <Mail size={22} />
-                </motion.div>
-              </a>
-              <a href="https://github.com/Niteshh-DeV" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
-                <motion.div
-                  whileTap={{ scale: 0.95 }}
-                  onTouchStart={() => triggerHaptic('light')}
-                  onClick={() => triggerHaptic('medium')}
-                  className="w-12 h-12 rounded-full flex items-center justify-center backdrop-blur-sm shadow-lg border border-[rgb(var(--border))] bg-[rgb(var(--muted))]/70 text-[rgb(var(--foreground))]"
-                >
-                  <Github size={22} />
-                </motion.div>
-              </a>
-              <a href="https://linkedin.com/in/niteshjoshi" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
-                <motion.div
-                  whileTap={{ scale: 0.95 }}
-                  onTouchStart={() => triggerHaptic('light')}
-                  onClick={() => triggerHaptic('medium')}
-                  className="w-12 h-12 rounded-full flex items-center justify-center backdrop-blur-sm shadow-lg border border-[rgb(var(--border))] bg-[rgb(var(--muted))]/70 text-[rgb(var(--foreground))]"
-                >
-                  <Linkedin size={22} />
-                </motion.div>
-              </a>
-            </motion.div>
-          </motion.div>
-
-          {/* Image with Expand + Crossfade Effect */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-            className="relative z-20 flex justify-center md:justify-end order-1 md:order-2"
-            onMouseEnter={() => setIsImageExpanded(true)}
-            onMouseLeave={() => setIsImageExpanded(false)}
-          >
-            <motion.div 
-              className="relative w-64 sm:w-80 md:w-full md:max-w-xl lg:max-w-2xl xl:max-w-3xl cursor-pointer"
-              animate={{
-                scale: isImageExpanded ? 1.15 : 1,
-                z: isImageExpanded ? 50 : 0,
-              }}
-              transition={{ 
-                duration: 0.6,
-                ease: [0.43, 0.13, 0.23, 0.96]
-              }}
-            >
-              {/* Base image */}
-              <motion.img
-                src={heroImage}
-                alt="Nitesh Joshi - Profile"
-                className="w-full h-auto object-contain rounded-2xl"
-                animate={{
-                  opacity: hoverHeroImage ? (isImageExpanded ? 0 : 1) : 1,
-                  scale: isImageExpanded && hoverHeroImage ? 1.02 : 1,
-                  boxShadow: isImageExpanded 
-                    ? '0 25px 50px -12px rgba(255, 255, 255, 0.25)' 
-                    : '0 20px 25px -5px rgba(0, 0, 0, 0.5)'
-                }}
-                transition={{ duration: 0.6, opacity: { duration: 0.5 }, scale: { duration: 0.5 } }}
-              />
-
-              {/* Hover image overlay (crossfade in on hover) */}
-              {hoverHeroImage && (
-                <motion.img
-                  src={hoverHeroImage}
-                  alt="Nitesh Joshi - Profile (Hover)"
-                  className="absolute inset-0 w-full h-full object-contain rounded-2xl"
-                  initial={{ opacity: 0 }}
-                  animate={{
-                    opacity: isImageExpanded ? 1 : 0,
-                    scale: isImageExpanded ? 1 : 0.98,
-                    boxShadow: isImageExpanded 
-                      ? '0 25px 50px -12px rgba(255, 255, 255, 0.25)' 
-                      : '0 20px 25px -5px rgba(0, 0, 0, 0.5)'
-                  }}
-                  transition={{ duration: 0.6, opacity: { duration: 0.5 }, scale: { duration: 0.5 } }}
-                />
-              )}
-              
-              {/* Glow effect on hover */}
-              <motion.div
-                className="absolute inset-0 rounded-2xl pointer-events-none"
-                animate={{
-                  opacity: isImageExpanded ? 0.3 : 0,
-                }}
-                transition={{ duration: 0.6 }}
-                style={{
-                  background: 'radial-gradient(circle at center, rgba(255,255,255,0.2) 0%, transparent 70%)',
-                }}
-              />
-            </motion.div>
-          </motion.div>
-        </div>
+        <motion.span className="hero__side label" {...appear}>
+          Portfolio — Vol. MMXXVI
+        </motion.span>
+        <motion.span className="hero__deva" aria-hidden="true" {...appear}>
+          नितेश जोशी
+        </motion.span>
       </div>
 
-      {/* Social Icons - Bottom Left Vertical (desktop) */}
-      <motion.div
-        initial={{ opacity: 0, x: -20 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ delay: 0.8 }}
-        className="hidden md:flex absolute bottom-8 left-6 md:left-10 flex-col gap-6 z-20"
-      >
-        <a href="mailto:niteshjoshi010@icloud.com" aria-label="Email">
-          <motion.div
-            whileHover={{ scale: 1.15, x: 5 }}
-            whileTap={{ scale: 0.95 }}
-            onTouchStart={() => triggerHaptic('light')}
-            onClick={() => triggerHaptic('medium')}
-            transition={{ duration: 0.3 }}
-            className="w-16 h-16 md:w-18 md:h-18 rounded-full flex items-center justify-center cursor-pointer backdrop-blur-sm shadow-lg border border-[rgb(var(--border))] bg-[rgb(var(--muted))]/70 text-[rgb(var(--foreground))] hover:bg-[rgb(var(--foreground))] hover:text-[rgb(var(--background))] hover:border-[rgb(var(--foreground))]"
-          >
-            <Mail size={26} className="md:w-7 md:h-7" />
-          </motion.div>
-        </a>
-        <a href="https://github.com/Niteshh-DeV" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
-          <motion.div
-            whileHover={{ scale: 1.15, x: 5 }}
-            whileTap={{ scale: 0.95 }}
-            onTouchStart={() => triggerHaptic('light')}
-            onClick={() => triggerHaptic('medium')}
-            transition={{ duration: 0.3 }}
-            className="w-16 h-16 md:w-18 md:h-18 rounded-full flex items-center justify-center cursor-pointer backdrop-blur-sm shadow-lg border border-[rgb(var(--border))] bg-[rgb(var(--muted))]/70 text-[rgb(var(--foreground))] hover:bg-[rgb(var(--foreground))] hover:text-[rgb(var(--background))] hover:border-[rgb(var(--foreground))]"
-          >
-            <Github size={26} className="md:w-7 md:h-7" />
-          </motion.div>
-        </a>
-        <a href="https://linkedin.com/in/niteshjoshi" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
-          <motion.div
-            whileHover={{ scale: 1.15, x: 5 }}
-            whileTap={{ scale: 0.95 }}
-            onTouchStart={() => triggerHaptic('light')}
-            onClick={() => triggerHaptic('medium')}
-            transition={{ duration: 0.3 }}
-            className="w-16 h-16 md:w-18 md:h-18 rounded-full flex items-center justify-center cursor-pointer backdrop-blur-sm shadow-lg border border-[rgb(var(--border))] bg-[rgb(var(--muted))]/70 text-[rgb(var(--foreground))] hover:bg-[rgb(var(--foreground))] hover:text-[rgb(var(--background))] hover:border-[rgb(var(--foreground))]"
-          >
-            <Linkedin size={26} className="md:w-7 md:h-7" />
-          </motion.div>
-        </a>
+      <motion.div className="hero__meta" {...fadeIn(1.1)}>
+        <div>
+          <p className="hero__lede">
+            <strong>Engineering student, poet, AI/ML enthusiast &amp; passionate creator</strong> — blending
+            engineering precision with creative storytelling.
+          </p>
+          <div className="hero__actions">
+            <a
+              href={cvPdf}
+              download="Nitesh_Joshi_CV.pdf"
+              className="link"
+              onClick={() => triggerHaptic('medium')}
+              onTouchStart={() => triggerHaptic('selection')}
+              aria-label="Download CV"
+            >
+              Download CV <span className="link__arrow">↓</span>
+            </a>
+            <button
+              type="button"
+              className="link link--accent"
+              onClick={goToPoetry}
+              onTouchStart={() => triggerHaptic('selection')}
+              aria-label="Open poetry section"
+            >
+              Read my poetry <span className="link__arrow">↗</span>
+            </button>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          className="hero__scroll label"
+          onClick={() => {
+            scrollToAbout();
+            triggerHaptic('light');
+          }}
+          aria-label="Scroll to about section"
+        >
+          Scroll
+          <i aria-hidden="true" />
+        </button>
+
+        <div className="hero__place label">
+          <span>Mahendranagar, Nepal</span>
+          <span>
+            28.96° N, 80.18° E — <b>{time}</b> NPT
+          </span>
+        </div>
       </motion.div>
-
-
-      {/* Scroll Indicator */}
-      <motion.button
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1, y: [0, 10, 0] }}
-        transition={{
-          opacity: { delay: 1 },
-          y: { duration: 2, repeat: Infinity }
-        }}
-        onClick={() => {
-          scrollToAbout();
-          triggerHaptic('light');
-        }}
-        onTouchStart={() => triggerHaptic('selection')}
-        className="absolute bottom-8 left-1/2 transform -translate-x-1/2 bg-[rgb(var(--muted))]/70 text-[rgb(var(--foreground))] p-3 rounded-full hover:bg-[rgb(var(--foreground))] hover:text-[rgb(var(--background))] transition-colors z-20 border border-[rgb(var(--border))]"
-        aria-label="Scroll to about section"
-      >
-        <ChevronDown size={32} />
-      </motion.button>
     </section>
   );
 }

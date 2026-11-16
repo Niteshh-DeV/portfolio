@@ -1,6 +1,6 @@
-import handwrittenImg from '@/assets/Handwritten/image.png';
-import imgg2 from '@/assets/Handwritten/imgg2.jpeg';
-import voyageImg from '@/assets/Handwritten/the_voyage_poem.png';
+import handwrittenImg from '@/assets/Handwritten/image.webp';
+import imgg2 from '@/assets/Handwritten/imgg2.webp';
+import voyageImg from '@/assets/Handwritten/the_voyage_poem.webp';
 
 export type Poem = {
   id: number;
@@ -12,6 +12,10 @@ export type Poem = {
   altImage?: string;
   hasAltVersion?: boolean;
   legacyDates?: string[];
+  /** URL of a recorded reading; the reader shows a Listen button when set. */
+  audio?: string;
+  /** BCP 47 code for poems not in English, e.g. 'ne' or 'hi' (set in Devanagari). */
+  lang?: string;
 };
 
 export const poems: Poem[] = [

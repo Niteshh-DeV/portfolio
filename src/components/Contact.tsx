@@ -1,12 +1,10 @@
 import { motion } from 'motion/react';
-import { useInView } from 'motion/react';
-import { useRef, useState } from 'react';
-import { Mail, Github, Linkedin, Twitter, Instagram, Facebook, Send } from 'lucide-react';
+import { useState } from 'react';
 import { useHaptic } from '@/hooks/useHaptic';
+import { Reveal, SectionHead } from './Reveal';
+import { Magnetic, Words } from './Kinetic';
 
 export function Contact() {
-  const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, margin: "-100px" });
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -16,42 +14,12 @@ export function Contact() {
   const { triggerHaptic } = useHaptic();
 
   const socialLinks = [
-    {
-      icon: Mail,
-      label: 'Email',
-      href: 'mailto:niteshjoshi010@icloud.com',
-      color: 'hover:text-red-500'
-    },
-    {
-      icon: Github,
-      label: 'GitHub',
-      href: 'https://github.com/Niteshh-DeV',
-      color: 'hover:text-gray-800 dark:hover:text-white'
-    },
-    {
-      icon: Linkedin,
-      label: 'LinkedIn',
-      href: 'https://linkedin.com/in/niteshjoshi',
-      color: 'hover:text-blue-600'
-    },
-    {
-      icon: Twitter,
-      label: 'Twitter',
-      href: 'https://x.com/niteshh_joshi',
-      color: 'hover:text-blue-400'
-    },
-    {
-      icon: Instagram,
-      label: 'Instagram',
-      href: 'https://www.instagram.com/nitesh_joshi_/',
-      color: 'hover:text-pink-500'
-    },
-    {
-      icon: Facebook,
-      label: 'Facebook',
-      href: 'https://www.facebook.com/NiteshhJoshi',
-      color: 'hover:text-blue-700'
-    }
+    { label: 'Email', href: 'mailto:niteshjoshi010@icloud.com' },
+    { label: 'GitHub', href: 'https://github.com/Niteshh-DeV' },
+    { label: 'LinkedIn', href: 'https://linkedin.com/in/niteshjoshi' },
+    { label: 'Twitter', href: 'https://x.com/niteshh_joshi' },
+    { label: 'Instagram', href: 'https://www.instagram.com/nitesh_joshi_/' },
+    { label: 'Facebook', href: 'https://www.facebook.com/NiteshhJoshi' }
   ];
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -106,179 +74,137 @@ export function Contact() {
   };
 
   return (
-    <section id="contact" className="py-20 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto">
-        <motion.div
-          ref={ref}
-          initial={{ opacity: 0, y: 50 }}
-          animate={isInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.6 }}
-          className="text-center mb-16"
-        >
-          <h2 className="mb-4">Get In Touch</h2>
-          <div className="w-20 h-1 bg-gradient-to-r from-[rgb(var(--primary))] to-[rgb(var(--secondary))] mx-auto rounded-full" />
-          <p className="text-[rgb(var(--muted-foreground))] mt-6 max-w-2xl mx-auto">
-            Have a project in mind or just want to chat? Feel free to reach out. I'm always open to discussing new opportunities and collaborations.
+    <section id="contact" aria-label="Contact" className="section contact">
+      <SectionHead numeral="VI" label="Correspondence — Get in touch" folio="06 / 06" />
+
+      <Words className="display contact__title" text="Let’s create something *amazing* together." />
+
+      <div className="contact__grid">
+        {/* Contact Form */}
+        <Reveal>
+          <p className="contact__lede">
+            Have a project in mind or just want to chat? Feel free to reach out. I&apos;m always open to discussing new
+            opportunities and collaborations — whether it&apos;s code, poetry, or a revolutionary idea, I&apos;m all ears.
           </p>
-        </motion.div>
 
-        <div className="grid md:grid-cols-2 gap-12 items-start">
-          {/* Contact Form */}
-          <motion.div
-            initial={{ opacity: 0, x: -50 }}
-            animate={isInView ? { opacity: 1, x: 0 } : {}}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="glass-effect p-8 rounded-2xl"
-          >
-            <h3 className="mb-6">Send a Message</h3>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div>
-                <label htmlFor="name" className="block mb-2 text-[rgb(var(--muted-foreground))]">
-                  Your Name
-                </label>
-                <motion.input
-                  whileFocus={{ scale: 1.02 }}
-                  type="text"
-                  id="name"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  onFocus={() => triggerHaptic('selection')}
-                  required
-                  className="w-full px-4 py-3 bg-[rgb(var(--muted))] border border-[rgb(var(--border))] rounded-lg focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary))] transition-all"
-                  placeholder="Name"
-                />
-              </div>
+          <form onSubmit={handleSubmit}>
+            <div className="field">
+              <span className="field__num label" aria-hidden="true">01</span>
+              <label htmlFor="name" className="label">Your name</label>
+              <input
+                type="text"
+                id="name"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                onFocus={() => triggerHaptic('selection')}
+                required
+                autoComplete="name"
+                placeholder="Name"
+              />
+            </div>
 
-              <div>
-                <label htmlFor="email" className="block mb-2 text-[rgb(var(--muted-foreground))]">
-                  Your Email
-                </label>
-                <motion.input
-                  whileFocus={{ scale: 1.02 }}
-                  type="email"
-                  id="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  onFocus={() => triggerHaptic('selection')}
-                  required
-                  className="w-full px-4 py-3 bg-[rgb(var(--muted))] border border-[rgb(var(--border))] rounded-lg focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary))] transition-all"
-                  placeholder="name@example.com"
-                />
-              </div>
+            <div className="field">
+              <span className="field__num label" aria-hidden="true">02</span>
+              <label htmlFor="email" className="label">Your email</label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                onFocus={() => triggerHaptic('selection')}
+                required
+                autoComplete="email"
+                placeholder="name@example.com"
+              />
+            </div>
 
-              <div>
-                <label htmlFor="message" className="block mb-2 text-[rgb(var(--muted-foreground))]">
-                  Message
-                </label>
-                <motion.textarea
-                  whileFocus={{ scale: 1.02 }}
-                  id="message"
-                  name="message"
-                  value={formData.message}
-                  onChange={handleChange}
-                  onFocus={() => triggerHaptic('selection')}
-                  required
-                  rows={5}
-                  className="w-full px-4 py-3 bg-[rgb(var(--muted))] border border-[rgb(var(--border))] rounded-lg focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary))] transition-all resize-none"
-                  placeholder="Tell me about your project or just say hi!"
-                />
-              </div>
+            <div className="field">
+              <span className="field__num label" aria-hidden="true">03</span>
+              <label htmlFor="message" className="label">Message</label>
+              <textarea
+                id="message"
+                name="message"
+                value={formData.message}
+                onChange={handleChange}
+                onFocus={() => triggerHaptic('selection')}
+                required
+                rows={4}
+                placeholder="Tell me about your project or just say hi!"
+              />
+            </div>
 
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                type="submit"
-                disabled={status === 'submitting'}
-                onTouchStart={() => triggerHaptic('light')}
-                className="w-full px-8 py-3 bg-[rgb(var(--primary))] text-black rounded-full hover:bg-[rgb(var(--primary))]/90 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {status === 'submitting' ? 'Sending...' : status === 'success' ? 'Message Sent!' : 'Send Message'}
-                <Send size={20} />
-              </motion.button>
+            <Magnetic className="send-wrap" strength={0.25}>
+            <button
+              type="submit"
+              className="send"
+              disabled={status === 'submitting'}
+              onTouchStart={() => triggerHaptic('light')}
+            >
+              {status === 'submitting' ? 'Sending...' : status === 'success' ? 'Message Sent!' : 'Send Message'}
+              <span aria-hidden="true">→</span>
+            </button>
+            </Magnetic>
 
+            <div aria-live="polite">
+              {status === 'success' && (
+                <motion.p initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="form__note">
+                  Thank you — your message is on its way.
+                </motion.p>
+              )}
               {status === 'error' && (
                 <motion.p
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="text-red-500 text-sm text-center"
+                  className="form__note form__note--error"
                 >
                   Failed to send message. Please try again or email directly.
                 </motion.p>
               )}
-            </form>
-          </motion.div>
-
-          {/* Contact Info */}
-          <motion.div
-            initial={{ opacity: 0, x: 50 }}
-            animate={isInView ? { opacity: 1, x: 0 } : {}}
-            transition={{ duration: 0.6, delay: 0.4 }}
-            className="space-y-8"
-          >
-            <div className="glass-effect p-8 rounded-2xl">
-              <h3 className="mb-6">Connect With Me</h3>
-              <div className="grid grid-cols-2 gap-4">
-                {socialLinks.map((social, index) => (
-                  <motion.a
-                    key={social.label}
-                    href={social.href}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={isInView ? { opacity: 1, y: 0 } : {}}
-                    transition={{ duration: 0.6, delay: 0.6 + index * 0.1 }}
-                    whileHover={{ scale: 1.05, y: -5 }}
-                    onClick={() => triggerHaptic('light')}
-                    onTouchStart={() => triggerHaptic('selection')}
-                    className={`flex flex-col items-center justify-center p-6 glass-effect rounded-xl ${social.color} transition-all group`}
-                  >
-                    <motion.div
-                      whileHover={{ rotate: 360 }}
-                      transition={{ duration: 0.6 }}
-                    >
-                      <social.icon size={32} />
-                    </motion.div>
-                    <span className="mt-2">{social.label}</span>
-                  </motion.a>
-                ))}
-              </div>
             </div>
+          </form>
+        </Reveal>
 
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={isInView ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: 0.6, delay: 0.8 }}
-              className="glass-effect p-8 rounded-2xl"
-            >
-              <h4 className="mb-4">Quick Info</h4>
-              <div className="space-y-4 text-[rgb(var(--muted-foreground))]">
-                <p>
-                  <strong className="text-[rgb(var(--foreground))]">Location:</strong><br />
-                  Mahendranagar, Nepal
-                </p>
-                <p>
-                  <strong className="text-[rgb(var(--foreground))]">Email:</strong><br />
-                  niteshjoshi010@icloud.com
-                </p>
-                <p>
-                  <strong className="text-[rgb(var(--foreground))]">Availability:</strong><br />
-                  Open for opportunities
-                </p>
-              </div>
-            </motion.div>
+        {/* Contact Info */}
+        <Reveal className="details" delay={0.15}>
+          <dl>
+            <div className="details__row">
+              <dt className="label">Location</dt>
+              <dd>Mahendranagar, Nepal</dd>
+            </div>
+            <div className="details__row">
+              <dt className="label">Email</dt>
+              <dd>
+                <a href="mailto:niteshjoshi010@icloud.com">niteshjoshi010@icloud.com</a>
+              </dd>
+            </div>
+            <div className="details__row">
+              <dt className="label">Availability</dt>
+              <dd>
+                <i aria-hidden="true" />
+                Open for opportunities
+              </dd>
+            </div>
+          </dl>
 
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={isInView ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: 0.6, delay: 1 }}
-              className="glass-effect p-8 rounded-2xl bg-gradient-to-br from-[rgb(var(--primary))]/10 to-[rgb(var(--secondary))]/10"
-            >
-              <p className="text-center italic">
-                "Let's create something amazing together. Whether it's code, poetry, or a revolutionary idea – I'm all ears!"
-              </p>
-            </motion.div>
-          </motion.div>
-        </div>
+          <div className="socials">
+            <h3 className="label">Connect with me</h3>
+            {socialLinks.map((social) => (
+              <a
+                key={social.label}
+                href={social.href}
+                className="social"
+                {...(social.href.startsWith('http') ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+                onClick={() => triggerHaptic('light')}
+                onTouchStart={() => triggerHaptic('selection')}
+              >
+                <span>{social.label}</span>
+                <span aria-hidden="true">↗</span>
+              </a>
+            ))}
+          </div>
+        </Reveal>
       </div>
     </section>
   );
