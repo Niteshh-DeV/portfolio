@@ -24,7 +24,8 @@
       },
       "scripts": {
             "dev": "vite",
-            "build": "tsc && vite build",
+            "build": "tsc && vite build && node scripts/prerender.mjs",
+            "og": "node scripts/generate-og.mjs",
             "contributions": "node scripts/fetch-contributions.mjs",
             "preview": "vite preview",
             "type-check": "tsc --noEmit",
