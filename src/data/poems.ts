@@ -113,6 +113,7 @@ export const poems: Poem[] = [
     pattern:
       'repeating-linear-gradient(45deg, transparent, transparent 35px, rgba(59, 130, 246, 0.05) 35px, rgba(59, 130, 246, 0.05) 70px)'
   },
+  /* Hidden: poems from 2024 and 2025. Remove this comment block to show them again.
   {
     id: 2,
     title: 'The last breath',
@@ -727,6 +728,7 @@ export const poems: Poem[] = [
     pattern:
       'radial-gradient(circle at 40% 45%, rgba(255, 255, 255, 0.09) 0%, transparent 45%), radial-gradient(circle at 70% 70%, rgba(59, 130, 246, 0.08) 0%, transparent 45%)'
   },
+  */
   {
     id: 21,
     title: 'Tulip',
