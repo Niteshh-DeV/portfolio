@@ -67,6 +67,7 @@
       "scripts": {
             "dev": "vite",
             "build": "tsc && vite build",
+            "contributions": "node scripts/fetch-contributions.mjs",
             "preview": "vite preview",
             "type-check": "tsc --noEmit",
             "lint": "tsc --noEmit"
