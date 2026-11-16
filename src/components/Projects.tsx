@@ -1,200 +1,174 @@
-import { motion } from 'motion/react';
-import { useInView } from 'motion/react';
-import { useRef, useState } from 'react';
-import { ExternalLink, Github } from 'lucide-react';
+import { motion, useMotionValue, useSpring, useTransform, useVelocity } from 'motion/react';
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useHaptic } from '@/hooks/useHaptic';
+import { projects, type Project } from '@/data/projects';
+import { EASE, Reveal, SectionHead } from './Reveal';
+import { Words } from './Kinetic';
 
-const project1Img = new URL('../assets/projectImage/p1.png', import.meta.url).href;
-const project2Img = new URL('../assets/projectImage/p2.png', import.meta.url).href;
-const project3Img = new URL('../assets/projectImage/p3.png', import.meta.url).href;
-const drishyaImg = new URL('../assets/projectImage/drishya.png', import.meta.url).href;
+const filters: { name: string; test: (project: Project) => boolean }[] = [
+  { name: 'All', test: () => true },
+  { name: 'Web', test: (project) => project.tags.includes('React') },
+  { name: 'Data/AI', test: (project) => project.tags.includes('Python') },
+  { name: 'C++', test: (project) => project.tags.includes('C++') },
+];
 
 export function Projects() {
-  const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, margin: "-100px" });
-  const [hoveredProject, setHoveredProject] = useState<number | null>(null);
+  const [hoveredProject, setHoveredProject] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState('All');
   const { triggerHaptic } = useHaptic();
 
-  const projects = [
-      {
-      title: 'Drishya',
-      description: 'An immersive AI assisted tourism experience for exploring the districts, places, and stories of Nepal’s Sudurpashchim Province.',
-      tags: ['React', 'TypeScript', 'Interactive Map', 'Vercel'],
-      github: 'https://github.com/Niteshh-DeV/Drishya.git',
-      live: 'https://drishya-fwu.vercel.app',
-      image: drishyaImg
-    },
-    {
-      title: 'Personal Portfolio Website',
-      description: 'Built a responsive and interactive personal portfolio website to showcase my projects, skills, and experience.',
-      tags: ['TypeScript', 'React', 'Tailwind CSS', 'Vite'],
-      github: 'https://github.com/Niteshh-DeV/portfolio',
-      live: 'https://niteshjoshi.me',
-      image: project1Img
-
-    },
-  
-    {
-      title: 'Weather App',
-      description: 'Build an interactive weather application that fetches real-time data from a public API and displays it with dynamic backgrounds based on weather conditions.',
-      tags: ['C++', 'Qt', 'API', 'JSON'],
-      github: 'https://github.com/Niteshh-DeV/OOP_In_CPP/tree/main/Weather_App',
-      live: '' ,
-      image : project2Img
-    },
-    
-    {
-      title: 'Loan Prediction System',
-      description: 'Developed a machine learning model to predict loan approval status based on applicant data, improving accuracy using feature engineering and different learning algorithms.',
-      tags: ['Python', 'Scikit-learn', 'Pandas', 'Data Analysis', 'Seaborn', 'Matplotlib', 'Numpy', 'Jupyter'],
-      github: 'https://github.com/Niteshh-DeV/AI-ML-Journey-With-Learning-Utsav/tree/main/loan-approval-final-project',
-      live: '',
-      image : project3Img
-    },
-    {
-      title: 'Collection Of Python Small Projects',
-      description: 'A repository of small Python projects demonstrating various concepts such as Password generator, To-Do List and data analysis.',
-      tags: ['Python', 'Data Analysis', 'Numpy', 'Pandas'],
-      github: 'https://github.com/Niteshh-DeV/Python_Projects.git',
-      live: ''
-    },
-    {
-      title: 'Collection Of C++ Small Projects',
-      description: 'A repository of small C++ projects demonstrating various concepts such as Student Management System and Library Management System.',
-      tags: ['C++', 'OOP', 'STL'],
-      github: 'https://github.com/Niteshh-DeV/Projects-.cpp.git',
-      live: ''
-    }
-  ];
-
-  const filters = ['All', 'Web', 'Data/AI', 'C++'];
-
-  const filteredProjects = projects.filter(project => {
-    if (activeFilter === 'All') return true;
-    if (activeFilter === 'Web') return project.tags.includes('React');
-    if (activeFilter === 'Data/AI') return project.tags.includes('Python');
-    if (activeFilter === 'C++') return project.tags.includes('C++');
-    return true;
+  // Floating preview that trails the pointer across the list
+  const pointerX = useMotionValue(0);
+  const pointerY = useMotionValue(0);
+  const previewX = useSpring(pointerX, { stiffness: 180, damping: 24, mass: 0.6 });
+  const previewY = useSpring(pointerY, { stiffness: 180, damping: 24, mass: 0.6 });
+  // ...and leans into the direction it is being dragged
+  const previewTilt = useSpring(useTransform(useVelocity(previewX), [-1800, 0, 1800], [-10, 0, 10]), {
+    stiffness: 160,
+    damping: 20,
   });
 
+  const filteredProjects = projects.filter(filters.find((filter) => filter.name === activeFilter)?.test ?? (() => true));
+
   return (
-    <section id="projects" className="py-20 px-4 sm:px-6 lg:px-8 bg-[rgb(var(--muted))]/30">
-      <div className="max-w-7xl mx-auto">
-        <motion.div
-          ref={ref}
-          initial={{ opacity: 0, y: 50 }}
-          animate={isInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.6 }}
-          className="text-center mb-10"
-        >
-          <h2 className="mb-4 uppercase tracking-wider">Projects</h2>
-        </motion.div>
+    <section id="projects" aria-label="Projects" className="section works">
+      <SectionHead numeral="III" label="Selected works — Projects" folio="03 / 06" />
+
+      <div className="works__top">
+        <Words className="display" text="Selected *works*" />
 
         {/* Filter Bar */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={isInView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.6, delay: 0.2 }}
-          className="flex flex-wrap justify-center gap-4 mb-12"
-        >
+        <Reveal className="works__filters" delay={0.1}>
           {filters.map((filter) => (
             <button
-              key={filter}
+              key={filter.name}
+              type="button"
+              aria-pressed={activeFilter === filter.name}
               onClick={() => {
-                setActiveFilter(filter);
+                setActiveFilter(filter.name);
                 triggerHaptic('light');
               }}
-              className={`px-6 py-2 rounded-full border border-[rgb(var(--border))] transition-all font-semibold tracking-wide ${
-                activeFilter === filter
-                  ? 'bg-[rgb(var(--foreground))] text-[rgb(var(--background))] border-[rgb(var(--foreground))]'
-                  : 'bg-[rgb(var(--muted))]/50 text-[rgb(var(--muted-foreground))] hover:border-[rgb(var(--foreground))] hover:text-[rgb(var(--foreground))]'
-              }`}
+              className="works__filter"
             >
-              {filter}
+              {filter.name}
+              <sup>{projects.filter(filter.test).length}</sup>
             </button>
           ))}
-        </motion.div>
-
-        <motion.div layout className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {filteredProjects.map((project, index) => (
-            <motion.div
-              layout
-              initial={{ opacity: 0, y: 50 }}
-              animate={isInView ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: 0.6, delay: index * 0.1 }}
-              whileHover={{ y: -10 }}
-              onHoverStart={() => {
-                setHoveredProject(index);
-                triggerHaptic('light');
-              }}
-              onHoverEnd={() => setHoveredProject(null)}
-              onTouchStart={() => triggerHaptic('selection')}
-              className="glass-effect rounded-lg overflow-hidden cursor-pointer group border-2 border-[rgb(var(--border))] hover:border-[rgb(var(--foreground))] transition-all"
-            >
-              <div className="h-48 relative border-b-2 border-[rgb(var(--border))] overflow-hidden bg-[rgb(var(--muted))]">
-                {project.image ? (
-                  <motion.img
-                    src={project.image}
-                    alt={project.title}
-                    animate={{ scale: hoveredProject === index ? 1.05 : 1 }}
-                    transition={{ duration: 0.3 }}
-                    className="absolute inset-0 w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="absolute inset-0 bg-[rgb(var(--foreground))] opacity-10" />
-                )}
-                <div className="absolute inset-0 bg-black/30 group-hover:bg-black/50 transition-colors" />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="flex gap-4">
-                    {project.github && (
-                      <a href={project.github} target="_blank" rel="noopener noreferrer">
-                        <motion.button
-                          whileHover={{ scale: 1.1 }}
-                          onClick={() => triggerHaptic('medium')}
-                          onTouchStart={() => triggerHaptic('light')}
-                          className="p-3 bg-[rgb(var(--foreground))] text-[rgb(var(--background))] rounded-lg hover:bg-[rgb(var(--secondary))] transition-colors"
-                        >
-                          <Github size={20} />
-                        </motion.button>
-                      </a>
-                    )}
-                    {project.live && (
-                      <a href={project.live} target="_blank" rel="noopener noreferrer">
-                        <motion.button
-                          whileHover={{ scale: 1.1 }}
-                          onClick={() => triggerHaptic('medium')}
-                          onTouchStart={() => triggerHaptic('light')}
-                          className="p-3 bg-[rgb(var(--foreground))] text-[rgb(var(--background))] rounded-lg hover:bg-[rgb(var(--secondary))] transition-colors"
-                        >
-                          <ExternalLink size={20} />
-                        </motion.button>
-                      </a>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-6">
-                <h4 className="mb-3 uppercase tracking-wider">{project.title}</h4>
-                <p className="text-[rgb(var(--muted-foreground))] mb-4 text-sm">
-                  {project.description}
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {project.tags.map((tag) => (
-                    <span
-                      key={tag}
-                      className="px-3 py-1 bg-[rgb(var(--muted))] text-xs rounded-md border border-[rgb(var(--border))] font-medium"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </motion.div>
-          ))}
-        </motion.div>
+        </Reveal>
       </div>
+
+      <div
+        className="works__list"
+        onMouseMove={(e) => {
+          pointerX.set(e.clientX);
+          pointerY.set(e.clientY);
+        }}
+        onMouseLeave={() => setHoveredProject(null)}
+      >
+        {filteredProjects.map((project, index) => {
+          const external = project.live || project.github;
+
+          return (
+            <motion.article
+              key={project.slug}
+              className="work"
+              initial={{ opacity: 0, y: 28 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '0px 0px -10% 0px' }}
+              transition={{ duration: 0.9, delay: index * 0.05, ease: EASE }}
+              onMouseEnter={() => setHoveredProject(project.slug)}
+              onTouchStart={() => triggerHaptic('selection')}
+            >
+              <span className="label">{String(index + 1).padStart(2, '0')}</span>
+
+              <h3 className="work__title">
+                {project.caseStudy ? (
+                  <Link to={`/work/${project.slug}`} data-cursor="Read" onClick={() => triggerHaptic('medium')}>
+                    {project.title}
+                  </Link>
+                ) : (
+                  <a
+                    href={external}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    data-cursor={project.live ? 'Visit' : 'Code'}
+                    onClick={() => triggerHaptic('medium')}
+                  >
+                    {project.title}
+                  </a>
+                )}
+              </h3>
+
+              <div className="work__body">
+                <p className="work__desc">{project.description}</p>
+                <ul className="work__tags">
+                  {project.tags.map((tag) => (
+                    <li key={tag} className="label">
+                      {tag}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="work__links">
+                {project.caseStudy && (
+                  <Link to={`/work/${project.slug}`} className="link link--accent" onClick={() => triggerHaptic('medium')}>
+                    Case study <span className="link__arrow">→</span>
+                  </Link>
+                )}
+                {project.live && (
+                  <a
+                    href={project.live}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="link"
+                    onClick={() => triggerHaptic('medium')}
+                  >
+                    Live <span className="link__arrow">↗</span>
+                  </a>
+                )}
+                {project.github && (
+                  <a
+                    href={project.github}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="link"
+                    onClick={() => triggerHaptic('medium')}
+                  >
+                    Code <span className="link__arrow">↗</span>
+                  </a>
+                )}
+                {project.isPrivate && <span className="label work__private">Private project</span>}
+              </div>
+
+              {project.image && (
+                <div className="work__image">
+                  <img src={project.image} alt={project.title} loading="lazy" />
+                </div>
+              )}
+            </motion.article>
+          );
+        })}
+      </div>
+
+      <motion.div
+        className="works__preview"
+        aria-hidden="true"
+        style={{ x: previewX, y: previewY, rotate: previewTilt }}
+        animate={{ opacity: hoveredProject ? 1 : 0, scale: hoveredProject ? 1 : 0.8 }}
+        transition={{ duration: 0.5, ease: EASE }}
+      >
+        {projects.map((project) => (
+          <div key={project.slug} className="works__preview-item" data-active={hoveredProject === project.slug}>
+            {project.image ? (
+              <img src={project.image} alt="" loading="lazy" />
+            ) : (
+              <div className="works__blank">{project.isPrivate ? 'खाता' : project.tags[0]}</div>
+            )}
+          </div>
+        ))}
+      </motion.div>
     </section>
   );
 }
